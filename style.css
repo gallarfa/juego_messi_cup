@@ -1,0 +1,599 @@
+:root {
+    --bg-color: #080c14;
+    --panel-bg: #111827;
+    --text-main: #f8fafc;
+    --text-muted: #64748b;
+    --accent-color: #10b981;
+    --accent-hover: #059669;
+    --danger-color: #ef4444;
+    --sky-blue: #38bdf8;
+    --jersey-blue: #004b93;
+    --canvas-bg: #020617;
+    --gold: #fbbf24;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Space Mono', monospace;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Grano analógico sutil de fondo */
+body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.045'/%3E%3C/svg%3E");
+}
+
+/* Marco estético doble (Estilo Keita Yamada / p5aholic) */
+.frame_line {
+    position: fixed;
+    background-color: rgba(56, 189, 248, 0.07);
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.05);
+}
+.frame_line--top {
+    top: max(15px, 2.5vmin);
+    left: max(15px, 2.5vmin);
+    right: max(15px, 2.5vmin);
+    height: 1px;
+}
+.frame_line--bottom {
+    bottom: max(15px, 2.5vmin);
+    left: max(15px, 2.5vmin);
+    right: max(15px, 2.5vmin);
+    height: 1px;
+}
+.frame_line--left {
+    top: max(15px, 2.5vmin);
+    bottom: max(15px, 2.5vmin);
+    left: max(15px, 2.5vmin);
+    width: 1px;
+}
+.frame_line--right {
+    top: max(15px, 2.5vmin);
+    bottom: max(15px, 2.5vmin);
+    right: max(15px, 2.5vmin);
+    width: 1px;
+}
+
+/* Contenedor de vidrio acrílico / Glassmorphism */
+.game-container {
+    background: rgba(17, 24, 39, 0.45);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    padding: 2rem;
+    border-radius: 28px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.65), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                0 0 25px rgba(56, 189, 248, 0.04);
+    max-width: 500px; /* Tamaño del juego de la viborita */
+    width: 100%;
+    border: 1px solid rgba(56, 189, 248, 0.12);
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.back-btn {
+    align-self: flex-start;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+}
+
+.back-btn:hover {
+    color: var(--sky-blue);
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.25);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+}
+
+h1 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.35rem;
+    font-weight: bold;
+    background: linear-gradient(to right, var(--sky-blue), #ffffff, var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: -1.5px;
+    text-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.score-board {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.score-box {
+    background: rgba(0, 0, 0, 0.35);
+    padding: 0.5rem 0.8rem;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 85px;
+    border: 1px solid rgba(56, 189, 248, 0.12);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.score-label {
+    display: block;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.5px;
+}
+
+.score-value {
+    display: block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--gold);
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+}
+
+/* Contenedor de la pantalla con neón pulsante */
+.canvas-container {
+    position: relative;
+    background-color: var(--canvas-bg);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: inset 0 0 35px rgba(0,0,0,0.95);
+    border: 2px solid rgba(56, 189, 248, 0.2);
+    animation: border-pulse 4s infinite alternate ease-in-out;
+}
+
+@keyframes border-pulse {
+    0% {
+        border-color: rgba(56, 189, 248, 0.25);
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.12), inset 0 0 30px rgba(0,0,0,0.9);
+    }
+    100% {
+        border-color: rgba(16, 185, 129, 0.35);
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.22), inset 0 0 30px rgba(0,0,0,0.9);
+    }
+}
+
+canvas {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1; /* Cuadrado como la viborita */
+}
+
+/* Pantalla de overlay (Menú / Game Over) */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(10, 14, 26, 0.94);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: opacity 0.3s ease;
+    padding: 1.5rem;
+    border: 1px solid rgba(56, 189, 248, 0.1);
+}
+
+.overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#overlay-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    font-weight: bold;
+    text-align: center;
+    background: linear-gradient(to right, var(--sky-blue), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+#overlay-desc {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    text-align: center;
+    max-width: 90%;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.controls-guide {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.015);
+    padding: 0.8rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.guide-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+}
+
+.key {
+    background-color: rgba(56, 189, 248, 0.08);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-weight: bold;
+    color: var(--sky-blue);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.1);
+}
+
+.action {
+    color: var(--text-main);
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+    color: white;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.8rem 2.2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.55);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+}
+
+/* Avatar de Messi en el Menú */
+.cartoon-messi {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    margin: 0 auto 1rem;
+}
+
+.cartoon-messi .face {
+    width: 36px;
+    height: 36px;
+    background-color: #ffd6ad;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 4px;
+    left: 12px;
+    border: 2px solid #000;
+}
+
+.cartoon-messi .face .eye {
+    width: 4.5px;
+    height: 4.5px;
+    background: #000;
+    border-radius: 50%;
+    position: absolute;
+    top: 12px;
+}
+
+.cartoon-messi .face .eye.left { left: 8px; }
+.cartoon-messi .face .eye.right { right: 8px; }
+
+.cartoon-messi .face .smile {
+    width: 10px;
+    height: 5px;
+    border-bottom: 2px solid #000;
+    border-radius: 0 0 7px 7px;
+    position: absolute;
+    bottom: 8px;
+    left: 11px;
+}
+
+.cartoon-messi .hair-spikes {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    width: 44px;
+    height: 20px;
+    background-color: #fbbf24;
+    border-radius: 10px 10px 0 0;
+    border: 2px solid #000;
+}
+
+.cartoon-messi .hair-spikes::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: 8px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 9px solid #fbbf24;
+}
+
+.cartoon-messi .hair-spikes::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    right: 8px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 9px solid #fbbf24;
+}
+
+/* Controles móviles virtuales (D-Pad en cruz estilo Viborita) */
+.mobile-controls {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 1.2rem auto 0;
+    background: rgba(0, 0, 0, 0.25);
+    border: 2px solid rgba(255, 255, 255, 0.03);
+    border-radius: 50%;
+    padding: 10px;
+    display: none; /* Oculto en escritorio */
+}
+
+.ctrl-btn {
+    position: absolute;
+    background-color: var(--panel-bg);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.1s ease;
+    user-select: none;
+    touch-action: manipulation;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.ctrl-btn.btn-up {
+    top: 5px;
+    left: 50px;
+    width: 60px;
+    height: 45px;
+    border-radius: 12px 12px 4px 4px;
+}
+
+.ctrl-btn.btn-down {
+    bottom: 5px;
+    left: 50px;
+    width: 60px;
+    height: 45px;
+    border-radius: 4px 4px 12px 12px;
+}
+
+.ctrl-btn.btn-left {
+    top: 50px;
+    left: 5px;
+    width: 45px;
+    height: 60px;
+    border-radius: 12px 4px 4px 12px;
+}
+
+.ctrl-btn.btn-right {
+    top: 50px;
+    right: 5px;
+    width: 45px;
+    height: 60px;
+    border-radius: 4px 12px 12px 4px;
+}
+
+.ctrl-btn:active, .ctrl-btn.pressed {
+    background-color: var(--sky-blue);
+    border-color: var(--sky-blue);
+    color: #000;
+    transform: scale(0.95);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+}
+
+/* Sonido flotante retro */
+.sound-btn {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: rgba(17, 24, 39, 0.8);
+    color: white;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.sound-btn:hover {
+    transform: scale(1.08);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.game-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+/* Mostrar controles móviles activos */
+.game-active .mobile-controls {
+    display: block;
+}
+
+/* Ocultar controles móviles por defecto en escritorio con mouse */
+@media (hover: hover) and (pointer: fine) {
+    .mobile-controls {
+        display: none !important;
+    }
+}
+
+/* Adaptación responsive para celulares */
+@media (max-width: 480px) {
+    body {
+        padding: 8px;
+    }
+    .game-container {
+        padding: 1.1rem;
+        border-radius: 20px;
+    }
+    .game-header {
+        margin-bottom: 1rem;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    h1 {
+        font-size: 1.15rem;
+    }
+    .score-board {
+        gap: 0.4rem;
+    }
+    .score-box {
+        padding: 0.4rem 0.55rem;
+        min-width: 75px;
+        border-radius: 10px;
+    }
+    .score-label {
+        font-size: 0.55rem;
+    }
+    .score-value {
+        font-size: 0.75rem;
+    }
+    #overlay-title {
+        font-size: 1.1rem;
+        margin-bottom: 0.8rem;
+    }
+    #overlay-desc {
+        font-size: 0.75rem;
+        margin-bottom: 0.8rem;
+        max-width: 100%;
+    }
+    .controls-guide {
+        margin-bottom: 0.8rem;
+        padding: 0.55rem;
+    }
+    .primary-btn {
+        padding: 0.7rem 1.8rem;
+        font-size: 0.9rem;
+        border-radius: 10px;
+    }
+    .mobile-controls {
+        width: 140px;
+        height: 140px;
+        margin-top: 1rem;
+        padding: 6px;
+    }
+    .ctrl-btn.btn-up {
+        top: 4px;
+        left: 45px;
+        width: 50px;
+        height: 40px;
+        border-radius: 10px 10px 4px 4px;
+    }
+    .ctrl-btn.btn-down {
+        bottom: 4px;
+        left: 45px;
+        width: 50px;
+        height: 40px;
+        border-radius: 4px 4px 10px 10px;
+    }
+    .ctrl-btn.btn-left {
+        top: 45px;
+        left: 4px;
+        width: 40px;
+        height: 50px;
+        border-radius: 10px 4px 4px 10px;
+    }
+    .ctrl-btn.btn-right {
+        top: 45px;
+        right: 4px;
+        width: 40px;
+        height: 50px;
+        border-radius: 4px 10px 10px 4px;
+    }
+    .ctrl-btn {
+        font-size: 1.1rem;
+    }
+}
+
+@media (pointer: coarse) {
+    .controls-guide {
+        display: none;
+    }
+    #overlay-desc {
+        margin-bottom: 1.4rem;
+    }
+}
