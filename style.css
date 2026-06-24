@@ -399,8 +399,8 @@ canvas {
 
 .touch-btn {
     flex: none;
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     background: rgba(17, 24, 39, 0.7);
     border: 2px solid rgba(255, 255, 255, 0.06);
@@ -411,7 +411,7 @@ canvas {
     align-items: center;
     cursor: pointer;
     user-select: none;
-    touch-action: manipulation;
+    touch-action: none;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -553,8 +553,8 @@ canvas {
         justify-content: center;
     }
     .touch-btn {
-        height: 80px;
-        width: 80px;
+        height: 90px;
+        width: 90px;
         border-radius: 50%;
     }
 }
