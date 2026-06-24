@@ -3,36 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messi Cup - Dino Runner</title>
+    <title>Messi Dribble Run - Juego Estilo Dino</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Líneas de marco estético doble (Estilo Keita Yamada) -->
+    <div class="frame_line frame_line--top"></div>
+    <div class="frame_line frame_line--bottom"></div>
+    <div class="frame_line frame_line--left"></div>
+    <div class="frame_line frame_line--right"></div>
+
     <div class="game-container">
         <header class="game-header">
             <div class="header-left">
                 <a href="../index.html" class="back-btn">← Volver al Portfolio</a>
-                <h1>Messi Cup</h1>
+                <h1>Messi Dribble</h1>
             </div>
             <div class="score-board">
                 <div class="score-box">
-                    <span class="score-label">Copas</span>
-                    <span id="score" class="score-value">0</span>
+                    <span class="score-label">Distancia</span>
+                    <span id="score" class="score-value">0m</span>
                 </div>
                 <div class="score-box">
                     <span class="score-label">Récord</span>
-                    <span id="high-score" class="score-value">0</span>
+                    <span id="high-score" class="score-value">0m</span>
                 </div>
             </div>
         </header>
 
         <main class="canvas-container">
-            <canvas id="gameCanvas" width="400" height="400"></canvas>
+            <canvas id="gameCanvas" width="800" height="300"></canvas>
             
             <div id="overlay" class="overlay">
-                <h2 id="overlay-title">Messi Cup 🏆</h2>
+                <h2 id="overlay-title">Messi Dribble Run</h2>
                 <div class="messi-art-preview">
-                    <!-- Dibujo dinámico de Messi Dennis-style -->
+                    <!-- Dibujo dinámico de Messi Dennis-style con CSS/SVG -->
                     <div class="cartoon-messi">
                         <div class="hair-spikes"></div>
                         <div class="face">
@@ -40,26 +46,30 @@
                             <div class="eye right"></div>
                             <div class="smile"></div>
                         </div>
+                        <div class="shirt"></div>
                     </div>
                 </div>
-                <p id="overlay-desc">¡Messi corre con la pelota! Salta para esquivar rivales y tarjetas rojas.</p>
+                <p id="overlay-desc">¡Ayuda a Messi a eludir rivales y llevar la pelota al infinito!</p>
                 <div class="controls-guide">
                     <div class="guide-item">
-                        <span class="key">Espacio / ▲ / Tap</span>
-                        <span class="action">Saltar</span>
+                        <span class="key">ESPACIO / ↑ / Tocar Pantalla</span>
+                        <span class="action">Saltar (Mantén presionado para saltar más alto)</span>
                     </div>
                 </div>
-                <button id="start-btn" class="primary-btn">Jugar</button>
+                <button id="start-btn" class="primary-btn">Iniciar Carrera</button>
             </div>
         </main>
 
-        <!-- Controles táctiles móviles -->
-        <div class="mobile-controls">
-            <button id="jump-btn" class="primary-btn mobile-jump" style="margin-top:6px;">⤴️ Saltar</button>
+        <!-- Controles táctiles móviles en pantalla -->
+        <div class="touch-controls">
+            <button class="touch-btn btn-jump" id="touch-jump" style="width: 100%;">
+                <span class="btn-icon">▲</span>
+                <span class="btn-text">SALTAR (Mantén presionado)</span>
+            </button>
         </div>
 
         <footer class="game-footer">
-            <p>Esquiva a los rivales y las tarjetas rojas saltando a tiempo. ¡Junta Copas del Mundo para sumar 5 puntos extra!</p>
+            <p>Esquiva defensores y rivales saltando a tiempo. ¡Cuanto más mantengas presionado, más alto saltará Messi!</p>
         </footer>
     </div>
 

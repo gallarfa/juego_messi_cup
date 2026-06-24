@@ -31,7 +31,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Grano analógico sutil de fondo */
+/* Grano analógico sutil de fondo (para combinar con el portfolio) */
 body::after {
     content: "";
     position: fixed;
@@ -82,12 +82,12 @@ body::after {
     background: rgba(17, 24, 39, 0.45);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
-    padding: 2rem;
+    padding: 2.2rem;
     border-radius: 28px;
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.65), 
                 inset 0 1px 0 rgba(255, 255, 255, 0.06),
                 0 0 25px rgba(56, 189, 248, 0.04);
-    max-width: 500px; /* Tamaño del juego de la viborita */
+    max-width: 860px;
     width: 100%;
     border: 1px solid rgba(56, 189, 248, 0.12);
 }
@@ -96,7 +96,7 @@ body::after {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.8rem;
     flex-wrap: wrap;
     gap: 1rem;
 }
@@ -104,18 +104,18 @@ body::after {
 .header-left {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.6rem;
 }
 
 .back-btn {
     align-self: flex-start;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: var(--text-muted);
     text-decoration: none;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 0.35rem 0.65rem;
+    padding: 0.35rem 0.75rem;
     border-radius: 8px;
     transition: all 0.25s ease;
 }
@@ -129,7 +129,7 @@ body::after {
 
 h1 {
     font-family: 'Press Start 2P', cursive;
-    font-size: 1.35rem;
+    font-size: 1.45rem;
     font-weight: bold;
     background: linear-gradient(to right, var(--sky-blue), #ffffff, var(--accent-color));
     -webkit-background-clip: text;
@@ -141,43 +141,43 @@ h1 {
 
 .score-board {
     display: flex;
-    gap: 0.6rem;
+    gap: 0.8rem;
 }
 
 .score-box {
     background: rgba(0, 0, 0, 0.35);
-    padding: 0.5rem 0.8rem;
-    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    border-radius: 14px;
     text-align: center;
-    min-width: 85px;
+    min-width: 105px;
     border: 1px solid rgba(56, 189, 248, 0.12);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .score-label {
     display: block;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
     font-weight: 700;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
     letter-spacing: 0.5px;
 }
 
 .score-value {
     display: block;
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: bold;
     color: var(--gold);
     text-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
 }
 
-/* Contenedor de la pantalla con neón pulsante */
+/* Contenedor de la pantalla de juego con borde de neón pulsante */
 .canvas-container {
     position: relative;
     background-color: var(--canvas-bg);
-    border-radius: 18px;
+    border-radius: 20px;
     overflow: hidden;
     box-shadow: inset 0 0 35px rgba(0,0,0,0.95);
     border: 2px solid rgba(56, 189, 248, 0.2);
@@ -200,10 +200,10 @@ canvas {
     margin: 0 auto;
     max-width: 100%;
     height: auto;
-    aspect-ratio: 1 / 1; /* Cuadrado como la viborita */
+    aspect-ratio: 800 / 300;
 }
 
-/* Pantalla de overlay (Menú / Game Over) */
+/* Pantalla de overlay (Menú / Game Over) estilo consola cyberpunk */
 .overlay {
     position: absolute;
     top: 0;
@@ -218,7 +218,7 @@ canvas {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     transition: opacity 0.3s ease;
-    padding: 1.5rem;
+    padding: 2rem;
     border: 1px solid rgba(56, 189, 248, 0.1);
 }
 
@@ -229,8 +229,8 @@ canvas {
 
 #overlay-title {
     font-family: 'Press Start 2P', cursive;
-    font-size: 1.4rem;
-    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    margin-bottom: 1.2rem;
     font-weight: bold;
     text-align: center;
     background: linear-gradient(to right, var(--sky-blue), var(--gold));
@@ -241,10 +241,10 @@ canvas {
 
 #overlay-desc {
     color: var(--text-muted);
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
     text-align: center;
-    max-width: 90%;
-    font-size: 0.85rem;
+    max-width: 80%;
+    font-size: 0.9rem;
     line-height: 1.5;
 }
 
@@ -253,10 +253,10 @@ canvas {
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;
-    max-width: 360px;
-    margin-bottom: 1.5rem;
+    max-width: 440px;
+    margin-bottom: 1.6rem;
     background: rgba(255, 255, 255, 0.015);
-    padding: 0.8rem;
+    padding: 0.85rem;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.04);
 }
@@ -270,7 +270,7 @@ canvas {
 
 .key {
     background-color: rgba(56, 189, 248, 0.08);
-    padding: 0.2rem 0.5rem;
+    padding: 0.25rem 0.55rem;
     border-radius: 6px;
     font-weight: bold;
     color: var(--sky-blue);
@@ -286,9 +286,9 @@ canvas {
     background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
     color: white;
     border: 1px solid rgba(16, 185, 129, 0.3);
-    padding: 0.8rem 2.2rem;
+    padding: 0.85rem 2.4rem;
     font-family: 'Space Mono', monospace;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 700;
     border-radius: 12px;
     cursor: pointer;
@@ -304,45 +304,20 @@ canvas {
 }
 
 .primary-btn:active {
-    transform: translateY(0) scale(0.98);
-}
-
-#start-btn {
-    background: linear-gradient(135deg, var(--gold), #d97706);
-    border: 1px solid rgba(251, 191, 36, 0.5);
-    color: #0c0a09;
-    font-weight: 800;
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
-    animation: start-pulse 2s infinite;
-}
-
-#start-btn:hover {
-    box-shadow: 0 0 30px rgba(251, 191, 36, 0.7);
-}
-
-@keyframes start-pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6);
-    }
-    70% {
-        box-shadow: 0 0 0 12px rgba(251, 191, 36, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
-    }
+    transform: translateY(0);
 }
 
 /* Avatar de Messi en el Menú */
 .cartoon-messi {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     position: relative;
-    margin: 0 auto 1rem;
+    margin: 0 auto 1.2rem;
 }
 
 .cartoon-messi .face {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     background-color: #ffd6ad;
     border-radius: 50%;
     position: absolute;
@@ -352,35 +327,35 @@ canvas {
 }
 
 .cartoon-messi .face .eye {
-    width: 4.5px;
-    height: 4.5px;
+    width: 5px;
+    height: 5px;
     background: #000;
     border-radius: 50%;
     position: absolute;
-    top: 12px;
+    top: 13px;
 }
 
-.cartoon-messi .face .eye.left { left: 8px; }
-.cartoon-messi .face .eye.right { right: 8px; }
+.cartoon-messi .face .eye.left { left: 9px; }
+.cartoon-messi .face .eye.right { right: 9px; }
 
 .cartoon-messi .face .smile {
-    width: 10px;
-    height: 5px;
+    width: 12px;
+    height: 6px;
     border-bottom: 2px solid #000;
-    border-radius: 0 0 7px 7px;
+    border-radius: 0 0 8px 8px;
     position: absolute;
-    bottom: 8px;
-    left: 11px;
+    bottom: 9px;
+    left: 12px;
 }
 
 .cartoon-messi .hair-spikes {
     position: absolute;
     top: 4px;
     left: 8px;
-    width: 44px;
-    height: 20px;
+    width: 48px;
+    height: 22px;
     background-color: #fbbf24;
-    border-radius: 10px 10px 0 0;
+    border-radius: 12px 12px 0 0;
     border: 2px solid #000;
 }
 
@@ -391,9 +366,9 @@ canvas {
     left: 8px;
     width: 0;
     height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-bottom: 9px solid #fbbf24;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 10px solid #fbbf24;
 }
 
 .cartoon-messi .hair-spikes::after {
@@ -403,51 +378,68 @@ canvas {
     right: 8px;
     width: 0;
     height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-bottom: 9px solid #fbbf24;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 10px solid #fbbf24;
 }
 
-/* Controles móviles virtuales (Corredor de un solo botón) */
-.mobile-controls {
-    margin-top: 1.2rem;
-    display: none; /* Oculto en escritorio */
+/* Botones Táctiles Móviles de Vidrio / Glassmorphism */
+.touch-controls {
+    display: none; 
+    justify-content: space-between;
+    gap: 1.2rem;
+    margin-top: 1.6rem;
     width: 100%;
-    padding: 0;
-    text-align: center;
 }
 
-.mobile-jump {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 1.1rem !important;
-    font-size: 1.15rem !important;
-    font-family: 'Space Mono', monospace;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    background: linear-gradient(135deg, var(--sky-blue), var(--jersey-blue)) !important;
-    border: 1px solid rgba(56, 189, 248, 0.3) !important;
-    color: white !important;
-    border-radius: 16px !important;
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
-    cursor: pointer;
-    transition: all 0.15s ease;
+.touch-btn {
+    flex: 1;
+    height: 68px;
+    border-radius: 18px;
+    background: rgba(17, 24, 39, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
-    gap: 8px;
+    align-items: center;
+    cursor: pointer;
     user-select: none;
     touch-action: manipulation;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
-.mobile-jump:active {
-    transform: scale(0.97);
-    background: linear-gradient(135deg, #0284c7, #0369a1) !important;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
+
+
+/* Botón de saltar azul celeste neon */
+.touch-btn.btn-jump {
+    border-color: rgba(56, 189, 248, 0.2);
+    color: var(--sky-blue);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.08);
 }
 
-/* Sonido flotante retro */
+.touch-btn.btn-jump:active, .touch-btn.btn-jump.pressed {
+    background-color: var(--sky-blue);
+    border-color: var(--sky-blue);
+    color: #000000;
+    transform: scale(0.94);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.55);
+}
+
+.btn-icon {
+    font-size: 1.25rem;
+    margin-bottom: 2px;
+}
+
+.btn-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Botón de sonido flotante retro */
 .sound-btn {
     position: fixed;
     bottom: 25px;
@@ -476,33 +468,30 @@ canvas {
 }
 
 .game-footer {
-    margin-top: 1.5rem;
+    margin-top: 1.8rem;
     text-align: center;
     color: var(--text-muted);
     font-size: 0.75rem;
     line-height: 1.5;
 }
 
-/* Mostrar controles móviles activos */
-.game-active .mobile-controls {
-    display: block;
-}
-
-/* Ocultar controles móviles por defecto en escritorio con mouse */
-@media (hover: hover) and (pointer: fine) {
-    .mobile-controls {
-        display: none !important;
-    }
+/* Mostrar controles en dispositivos móviles activos */
+.game-active .touch-controls {
+    display: flex;
 }
 
 /* Adaptación responsive para celulares */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
     body {
         padding: 8px;
     }
     .game-container {
         padding: 1.1rem;
         border-radius: 20px;
+    }
+    /* Estirar el menú de inicio para que no se recorte */
+    .game-container:not(.game-active) .canvas-container {
+        min-height: 290px;
     }
     .game-header {
         margin-bottom: 1rem;
@@ -529,7 +518,7 @@ canvas {
     }
     #overlay-title {
         font-size: 1.25rem;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.5rem;
     }
     #overlay-desc {
         font-size: 0.75rem;
@@ -537,10 +526,10 @@ canvas {
         max-width: 100%;
     }
     .messi-art-preview {
-        display: none !important;
+        display: none !important; /* Esconder caricatura para evitar cortes en celulares */
     }
     .controls-guide {
-        display: none !important;
+        display: none !important; /* Esconder guía en móviles */
     }
     .primary-btn {
         width: 100%;
@@ -550,17 +539,20 @@ canvas {
         font-size: 1.05rem;
         border-radius: 12px;
     }
-    .mobile-controls {
-        width: 100%;
-        height: auto;
+    .touch-controls {
         margin-top: 1rem;
-        padding: 0;
+        width: 100%;
+    }
+    .touch-btn {
+        height: 62px;
+        border-radius: 16px;
+        width: 100%;
     }
 }
 
 @media (pointer: coarse) {
     .controls-guide {
-        display: none;
+        display: none !important;
     }
     #overlay-desc {
         margin-bottom: 1.4rem;

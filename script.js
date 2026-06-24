@@ -1,4 +1,4 @@
-// Messi Cup – Chrome‑Dino‑Style Smooth Runner (60 FPS, Physics-based)
+// Messi Cup – Chrome‑Dino‑Style Smooth Runner (60 FPS, Variable Jump Height)
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('score');
@@ -10,7 +10,7 @@ const startBtn = document.getElementById('start-btn');
 const soundToggle = document.getElementById('sound-toggle');
 const container = document.querySelector('.game-container');
 
-// Audio Context & Sounds
+// Audio Context and Synth Sounds
 let audioCtx = null;
 let soundMuted = localStorage.getItem('messiSoundMuted') === 'true';
 soundToggle.textContent = soundMuted ? '🔇' : '🔊';
@@ -27,33 +27,74 @@ function playSound(type) {
         const now = audioCtx.currentTime;
 
         switch (type) {
-            case 'eat': // Gold Cup pickup
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, now); // C5
-                osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-                osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
-                osc.start(now);
-                osc.stop(now + 0.3);
-                break;
-            case 'jump': // Jump sound
+            case 'jump':
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(250, now);
-                osc.frequency.linearRampToValueAtTime(450, now + 0.15);
-                gain.gain.setValueAtTime(0.08, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.15);
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.12);
                 osc.start(now);
-                osc.stop(now + 0.15);
+                osc.stop(now + 0.12);
                 break;
-            case 'lose': // Red card / crash sound
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.linearRampToValueAtTime(80, now + 0.5);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.5);
+            case 'powerup': // World Cup collectible
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                notes.forEach((freq, idx) => {
+                    const noteOsc = audioCtx.createOscillator();
+                    const noteGain = noteOsc.createGain ? noteOsc.createGain() : audioCtx.createGain();
+                    noteOsc.connect(noteGain);
+                    noteGain.connect(audioCtx.destination);
+                    noteOsc.type = 'sine';
+                    noteOsc.frequency.setValueAtTime(freq, now + idx * 0.07);
+                    noteGain.gain.setValueAtTime(0.12, now + idx * 0.07);
+                    noteGain.gain.linearRampToValueAtTime(0.001, now + idx * 0.07 + 0.15);
+                    noteOsc.start(now + idx * 0.07);
+                    noteOsc.stop(now + idx * 0.07 + 0.15);
+                });
+                break;
+            case 'kick': // Sound when launching obstacles during power-up
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.exponentialRampToValueAtTime(70, now + 0.1);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
                 osc.start(now);
-                osc.stop(now + 0.5);
+                osc.stop(now + 0.1);
+                break;
+            case 'powerup-low':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(330, now);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.06);
+                osc.start(now);
+                osc.stop(now + 0.06);
+                break;
+            case 'milestone':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, now);
+                osc.frequency.setValueAtTime(880, now + 0.08);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+                break;
+            case 'lose':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(850, now);
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.18, now + 0.02);
+                gain.gain.linearRampToValueAtTime(0.02, now + 0.12);
+                gain.gain.linearRampToValueAtTime(0.18, now + 0.15);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.45);
+                const vibrato = audioCtx.createOscillator();
+                const vibratoGain = audioCtx.createGain();
+                vibrato.frequency.value = 35;
+                vibratoGain.gain.value = 25;
+                vibrato.connect(vibratoGain);
+                vibratoGain.connect(osc.frequency);
+                vibrato.start(now);
+                vibrato.stop(now + 0.45);
+                osc.start(now);
+                osc.stop(now + 0.45);
                 break;
         }
     } catch (e) {
@@ -61,58 +102,94 @@ function playSound(type) {
     }
 }
 
-// Game Physics Config
-const groundY = 320; // Y line of the field ground
-let speed = 4.8; // Scroll speed
+// Config and Physics
+const groundY = 220;
+let speed = 5.2;
+const baseSpeed = 5.2;
+const maxSpeed = 13.5;
+const speedStep = 0.00045; // Speed increases as you run
+let gameFrame = 0;
 let score = 0;
-let highScore = localStorage.getItem('messiCupHighScore') || 0;
-highScoreElement.textContent = highScore;
-
-// Game State
+let highScore = localStorage.getItem('messiHighScore') || 0;
 let gameActive = false;
 let gamePaused = false;
-let shakeTime = 0;
-let lastTime = 0;
 
-// Player (Messi)
-const player = {
-    x: 60,
-    y: groundY - 44,
-    width: 28,
-    height: 44,
-    vy: 0,
-    gravity: 0.52,
-    jumpStrength: -11.0,
-    isJumping: false,
-    runCycle: 0,
-    ballAngle: 0
-};
+highScoreElement.textContent = `${highScore}m`;
 
-// Game Entities Arrays
+// Entities Arrays
+let messi;
 let obstacles = [];
-let collectibles = []; // Copas (Gold Cups)
+let powerUps = [];
 let particles = [];
-let nextObstacleTime = 0;
-let nextCollectibleTime = 0;
-let fieldLinesOffset = 0;
+let clouds = [];
+let animationId;
+let shakeTime = 0;
+let nextObstacleTimer = 0;
+let nextPowerUpTimer = 220;
 
-// Confetti Particle Class
-class GoldConfetti {
-    constructor(x, y) {
+// Stadium Background Ad Boards (Scrolling)
+class AdBoard {
+    constructor() {
+        this.width = 180;
+        this.height = 14;
+        this.y = groundY + 68 - this.height;
+        this.messages = [
+            "★ GOAT 10 ★", 
+            "CAMPEONES DEL MUNDO ⭐⭐⭐", 
+            "MESSI RUNNER", 
+            "DANIEL EL TRAVIESO", 
+            "EL REY LEO",
+            "VAMOS ARGENTINA 🇦🇷"
+        ];
+        this.text = this.messages[Math.floor(Math.random() * this.messages.length)];
+    }
+}
+let adBoards = [];
+
+class Cloud {
+    constructor() {
+        this.x = canvas.width + Math.random() * 200;
+        this.y = 20 + Math.random() * 70;
+        this.size = 28 + Math.random() * 28;
+        this.speed = 0.4 + Math.random() * 0.7;
+    }
+    update() {
+        this.x -= this.speed;
+    }
+    draw() {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.x + this.size * 0.6, this.y - this.size * 0.2, this.size * 0.8, 0, Math.PI * 2);
+        ctx.arc(this.x + this.size * 1.2, this.y, this.size * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Particle Class
+class Particle {
+    constructor(x, y, color, type = 'dust') {
         this.x = x;
         this.y = y;
-        this.radius = 2 + Math.random() * 3;
-        this.vx = (Math.random() - 0.5) * 5;
-        this.vy = (Math.random() - 0.5) * 5 - 2;
-        this.color = Math.random() > 0.4 ? '#fbbf24' : '#ffffff';
+        this.color = color;
+        this.type = type;
+        this.radius = type === 'confetti' ? 2.5 + Math.random() * 3.5 : 1 + Math.random() * 2.5;
+        this.vx = type === 'confetti' ? (Math.random() - 0.5) * 7 : -speed * 0.35 + (Math.random() - 0.5) * 2;
+        this.vy = type === 'confetti' ? -Math.random() * 8 : (Math.random() - 0.75) * 3;
+        if (type === 'gold-trail') {
+            this.vx = -speed * 0.7 - Math.random() * 2;
+            this.vy = (Math.random() - 0.5) * 3;
+        }
         this.alpha = 1;
-        this.life = 25 + Math.random() * 20;
+        this.life = type === 'confetti' ? 90 + Math.random() * 30 : 20 + Math.random() * 15;
         this.maxLife = this.life;
     }
     update() {
         this.x += this.vx;
         this.y += this.vy;
-        this.vy += 0.12; // Gravity on particles
+        if (this.type === 'confetti') {
+            this.vy += 0.22;
+        }
         this.life--;
         this.alpha = Math.max(0, this.life / this.maxLife);
     }
@@ -120,575 +197,955 @@ class GoldConfetti {
         ctx.save();
         ctx.globalAlpha = this.alpha;
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.radius * 1.5, this.radius);
+        if (this.type === 'confetti') {
+            ctx.fillRect(this.x, this.y, this.radius * 1.6, this.radius);
+        } else {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
     }
 }
 
-// Running Grass Dust Particle
-class RunningDust {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.vx = -speed * 0.4 - Math.random() * 2;
-        this.vy = -Math.random() * 1.5;
-        this.radius = 1 + Math.random() * 3;
-        this.color = Math.random() > 0.5 ? '#10b981' : '#059669';
-        this.alpha = 0.6;
+// Gold Cup Collectible
+class WorldCup {
+    constructor() {
+        this.width = 24;
+        this.height = 36;
+        this.x = canvas.width + 50;
+        this.y = Math.random() > 0.5 ? groundY + 15 : groundY - 20; // floating or on pitch
+        this.pulse = 0;
     }
     update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.alpha -= 0.02;
+        this.x -= speed;
+        this.pulse += 0.15;
     }
     draw() {
-        if (this.alpha <= 0) return;
         ctx.save();
-        ctx.globalAlpha = this.alpha;
-        ctx.fillStyle = this.color;
+        const glow = 5 + Math.sin(this.pulse) * 4;
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = glow;
+        const cupX = this.x;
+        const cupY = this.y;
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2.5;
+
+        // Base
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.roundRect(cupX + 2, cupY + 28, 20, 8, 2);
         ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(cupX + 4, cupY + 30, 16, 2);
+
+        // Body
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.moveTo(cupX + 6, cupY + 28);
+        ctx.lineTo(cupX + 9, cupY + 14);
+        ctx.lineTo(cupX + 15, cupY + 14);
+        ctx.lineTo(cupX + 18, cupY + 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // World globe
+        ctx.beginPath();
+        ctx.arc(cupX + 12, cupY + 10, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(cupX + 9, cupY + 8, 6, 4);
+
         ctx.restore();
     }
 }
 
-// Spawners
-function spawnObstacle() {
-    const types = ['standing_rival', 'sliding_rival', 'red_card'];
-    const type = types[Math.floor(Math.random() * types.length)];
-    let width = 28;
-    let height = 44;
-    let y = groundY - height;
+// Messi Character
+class Messi {
+    constructor() {
+        this.x = 80;
+        this.y = groundY;
+        this.width = 46;
+        this.height = 72;
+        this.vy = 0;
+        this.gravity = 0.62;
+        this.jumpForce = -12.5;
+        this.jumping = false;
+        this.isHoldingJump = false; // Flag for variable jump height
+        
+        this.ball = {
+            rotation: 0,
+            yOffset: 0,
+            xOffset: 0,
+            radius: 8.5
+        };
 
-    if (type === 'sliding_rival') {
-        width = 38;
-        height = 22;
-        y = groundY - height;
-    } else if (type === 'red_card') {
-        width = 14;
-        height = 22;
-        y = groundY - 60 - Math.random() * 20; // Floating at head height
+        this.invincible = false;
+        this.invincibleTimer = 0;
+    }
+    
+    startJump() {
+        if (!this.jumping) {
+            this.vy = this.jumpForce;
+            this.jumping = true;
+            this.isHoldingJump = true;
+            playSound('jump');
+            
+            // Grass particles
+            for(let i=0; i<8; i++) {
+                particles.push(new Particle(this.x + 20, groundY + 70, '#4ade80', 'grass'));
+            }
+        }
     }
 
-    obstacles.push({
-        type,
-        x: canvas.width + 20,
-        y,
-        width,
-        height,
-        color: '#ef4444'
-    });
+    stopJump() {
+        this.isHoldingJump = false;
+    }
+    
+    update() {
+        // Handle invincibility
+        if (this.invincible) {
+            this.invincibleTimer--;
+            if (this.invincibleTimer > 0 && this.invincibleTimer < 90 && this.invincibleTimer % 30 === 0) {
+                playSound('powerup-low');
+            }
+            if (this.invincibleTimer <= 0) {
+                this.invincible = false;
+            }
+            if (gameFrame % 2 === 0) {
+                particles.push(new Particle(
+                    this.x + Math.random() * 30, 
+                    this.y + Math.random() * this.height, 
+                    Math.random() > 0.5 ? '#fbbf24' : '#ffffff', 
+                    'gold-trail'
+                ));
+            }
+        }
+
+        // Gravity with variable cutoff
+        if (this.jumping) {
+            this.vy += this.gravity;
+            
+            // Variable jump height: if button released early, cap upward velocity
+            if (!this.isHoldingJump && this.vy < -3.5) {
+                this.vy = -3.5;
+            }
+
+            this.y += this.vy;
+            
+            if (this.y >= groundY) {
+                this.y = groundY;
+                this.vy = 0;
+                this.jumping = false;
+            }
+        }
+        
+        // Soccer ball animation
+        const legPhase = gameFrame * 0.18;
+        this.ball.rotation += speed * 0.07;
+        
+        if (this.jumping) {
+            this.ball.yOffset = 48;
+            this.ball.xOffset = 38;
+        } else {
+            // Running dribble
+            this.ball.yOffset = 56 + Math.sin(legPhase) * 3;
+            this.ball.xOffset = 38 + Math.cos(legPhase) * 6;
+        }
+        
+        // Dust trail
+        if (!this.jumping && gameFrame % 3 === 0) {
+            particles.push(new Particle(this.x + 5, groundY + 68, 'rgba(255, 255, 255, 0.15)'));
+        }
+    }
+    
+    draw() {
+        const bounce = (!this.jumping) ? Math.sin(gameFrame * 0.2) * 2 : 0;
+        const bodyX = this.x;
+        const bodyY = this.y + bounce;
+        
+        ctx.save();
+        
+        if (this.invincible) {
+            if (this.invincibleTimer > 90 || Math.floor(gameFrame / 5) % 2 === 0) {
+                ctx.shadowColor = '#fbbf24';
+                ctx.shadowBlur = 18;
+            }
+        }
+        
+        // DIBUJAR A MESSI CORRIENDO / JUMPING
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        
+        let legPhase = gameFrame * 0.18;
+        if (this.jumping) legPhase = 1.5; 
+        
+        const leftLegY = bodyY + 54 + (this.jumping ? -8 : Math.sin(legPhase) * 10);
+        const leftLegX = bodyX + 15 + (this.jumping ? -4 : Math.cos(legPhase) * 12);
+        
+        const rightLegY = bodyY + 54 + (this.jumping ? -8 : Math.sin(legPhase + Math.PI) * 10);
+        const rightLegX = bodyX + 25 + (this.jumping ? 4 : Math.cos(legPhase + Math.PI) * 12);
+        
+        // Left Leg
+        ctx.beginPath();
+        ctx.moveTo(bodyX + 15, bodyY + 45);
+        ctx.lineTo(leftLegX, leftLegY);
+        ctx.stroke();
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(leftLegX, leftLegY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Right Leg
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(bodyX + 27, bodyY + 45);
+        ctx.lineTo(rightLegX, rightLegY);
+        ctx.stroke();
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(rightLegX, rightLegY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Shirt (Argentina)
+        ctx.fillStyle = this.invincible ? '#fbbf24' : '#38bdf8';
+        ctx.beginPath();
+        ctx.roundRect(bodyX + 10, bodyY + 20, 24, 28, 4);
+        ctx.fill();
+        
+        if (!this.invincible) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(bodyX + 16, bodyY + 20, 4, 28);
+            ctx.fillRect(bodyX + 24, bodyY + 20, 4, 28);
+        }
+        
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(bodyX + 10, bodyY + 20, 24, 28, 4);
+        ctx.stroke();
+        
+        // Jersey number 10
+        ctx.fillStyle = this.invincible ? '#000000' : '#fbbf24';
+        ctx.font = 'bold 7px "Space Mono"';
+        ctx.fillText('10', bodyX + 19, bodyY + 36);
+        
+        // Shorts
+        ctx.fillStyle = this.invincible ? '#d97706' : '#000000';
+        ctx.fillRect(bodyX + 10, bodyY + 43, 24, 6);
+        ctx.strokeRect(bodyX + 10, bodyY + 43, 24, 6);
+        
+        // Arm
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4.5;
+        const armAngle = this.jumping ? -0.8 : Math.sin(legPhase + Math.PI) * 0.8;
+        const handX = bodyX + 8 + Math.sin(armAngle) * 16;
+        const handY = bodyY + 32 + Math.cos(armAngle) * 12;
+        ctx.beginPath();
+        ctx.moveTo(bodyX + 16, bodyY + 24);
+        ctx.lineTo(handX, handY);
+        ctx.stroke();
+        ctx.fillStyle = '#ffd6ad';
+        ctx.beginPath();
+        ctx.arc(handX, handY, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        // Head
+        const headX = bodyX + 22;
+        const headY = bodyY + 8;
+        
+        // Hair (blonde spikes)
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(headX, headY - 1, 14, Math.PI, Math.PI*2);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(headX - 13, headY - 3);
+        ctx.lineTo(headX - 17, headY - 10);
+        ctx.lineTo(headX - 9, headY - 10);
+        ctx.lineTo(headX - 11, headY - 19); 
+        ctx.lineTo(headX - 3, headY - 13);
+        ctx.lineTo(headX, headY - 21); 
+        ctx.lineTo(headX + 4, headY - 13);
+        ctx.lineTo(headX + 10, headY - 18); 
+        ctx.lineTo(headX + 9, headY - 8);
+        ctx.lineTo(headX + 14, headY - 9);
+        ctx.lineTo(headX + 12, headY - 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        
+        ctx.fillStyle = '#ffd6ad';
+        ctx.beginPath();
+        ctx.arc(headX, headY + 1, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(headX - 9, headY - 3, 3, 0, Math.PI*2);
+        ctx.arc(headX + 9, headY - 3, 3, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(headX - 4, headY - 1, 2, 0, Math.PI * 2);
+        ctx.arc(headX + 4, headY - 1, 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(headX, headY + 4, 4, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        // Soccer ball
+        const ballX = this.x + this.ball.xOffset;
+        const ballY = this.y + this.ball.yOffset;
+        const radius = this.ball.radius;
+        
+        ctx.save();
+        ctx.translate(ballX, ballY);
+        ctx.rotate(this.ball.rotation);
+        
+        if (this.invincible) {
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 10;
+        }
+        
+        ctx.fillStyle = this.invincible ? '#fbbf24' : '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.fillStyle = this.invincible ? '#d97706' : '#000000';
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        for (let angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2 / 5)) {
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(angle) * (radius * 0.3), Math.sin(angle) * (radius * 0.3));
+            ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
 }
 
-function spawnCollectible() {
-    collectibles.push({
-        x: canvas.width + 20,
-        y: groundY - 45 - Math.random() * 70, // Floating at jump heights
-        width: 20,
-        height: 20,
-        collected: false
-    });
+// Obstacles (Standing/Sliding Defenders)
+class Obstacle {
+    constructor(type) {
+        this.type = type; 
+        this.x = canvas.width + 50;
+        this.launched = false;
+        this.vx = 0;
+        this.vy = 0;
+        this.rotation = 0;
+        this.rotSpeed = 0;
+        
+        const teamJerseys = ['#dc2626', '#eab308', '#2563eb', '#ffffff'];
+        this.jersey = teamJerseys[Math.floor(Math.random() * teamJerseys.length)];
+        
+        if (type === 'slide') {
+            this.width = 65;
+            this.height = 42;
+            this.y = groundY + 28;
+        } else if (type === 'stand') {
+            this.width = 44;
+            this.height = 70;
+            this.y = groundY;
+        }
+    }
+    
+    update() {
+        if (this.launched) {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += 0.55;
+            this.rotation += this.rotSpeed;
+        } else {
+            this.x -= speed;
+        }
+    }
+    
+    draw() {
+        ctx.save();
+        if (this.launched) {
+            ctx.translate(this.x + this.width/2, this.y + this.height/2);
+            ctx.rotate(this.rotation);
+            ctx.translate(-(this.x + this.width/2), -(this.y + this.height/2));
+            ctx.globalAlpha = 0.8;
+        }
+        
+        const rivalX = this.x;
+        const rivalY = this.y;
+        
+        if (this.type === 'slide') {
+            // Sliding defender
+            ctx.fillStyle = this.jersey;
+            ctx.beginPath();
+            ctx.roundRect(rivalX, rivalY + 12, 55, 18, 4);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(rivalX, rivalY + 12, 55, 18);
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(rivalX + 42, rivalY + 12, 10, 18);
+            ctx.strokeRect(rivalX + 42, rivalY + 12, 10, 18);
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(rivalX, rivalY + 22);
+            ctx.lineTo(rivalX - 15, rivalY + 26);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(rivalX - 15, rivalY + 26, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            const headX = rivalX + 48;
+            const headY = rivalY + 4;
+            ctx.fillStyle = '#e0a96d';
+            ctx.beginPath();
+            ctx.arc(headX, headY, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.arc(headX + 2, headY - 5, 8, Math.PI, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+        } else if (this.type === 'stand') {
+            // Standing defender
+            const bounce = this.launched ? 0 : Math.sin(gameFrame * 0.15 + Math.PI) * 2;
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            let legPhase = gameFrame * 0.18 + Math.PI;
+            ctx.beginPath();
+            ctx.moveTo(rivalX + 15, rivalY + 45);
+            ctx.lineTo(rivalX + 10 + Math.cos(legPhase)*8, rivalY + 54 + Math.sin(legPhase)*8);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(rivalX + 25, rivalY + 45);
+            ctx.lineTo(rivalX + 30 + Math.cos(legPhase + Math.PI)*8, rivalY + 54 + Math.sin(legPhase + Math.PI)*8);
+            ctx.stroke();
+            
+            ctx.fillStyle = this.jersey;
+            ctx.beginPath();
+            ctx.roundRect(rivalX + 8, rivalY + 18 + bounce, 24, 28, 4);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(rivalX + 8, rivalY + 18 + bounce, 24, 28);
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(rivalX + 8, rivalY + 41 + bounce, 24, 6);
+            ctx.strokeRect(rivalX + 8, rivalY + 41 + bounce, 24, 6);
+            
+            const headX = rivalX + 20;
+            const headY = rivalY + 8 + bounce;
+            ctx.fillStyle = '#c68a4c';
+            ctx.beginPath();
+            ctx.arc(headX, headY, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(headX, headY - 4, 9, Math.PI, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(headX - 6, headY - 4); 
+            ctx.lineTo(headX - 2, headY - 2);
+            ctx.moveTo(headX + 6, headY - 4);
+            ctx.lineTo(headX + 2, headY - 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
 }
 
-// Reset Game
+// Reset Game State
 function initGame() {
-    player.y = groundY - player.height;
-    player.vy = 0;
-    player.isJumping = false;
-    player.runCycle = 0;
-    player.ballAngle = 0;
-
+    messi = new Messi();
     obstacles = [];
-    collectibles = [];
+    powerUps = [];
     particles = [];
+    clouds = [];
+    adBoards = [];
+    speed = baseSpeed;
+    gameFrame = 0;
     score = 0;
-    scoreElement.textContent = score;
-    speed = 4.8;
-    shakeTime = 0;
-    
-    const now = Date.now();
-    nextObstacleTime = now + 1500;
-    nextCollectibleTime = now + 2500;
-    
+    nextObstacleTimer = 50;
+    nextPowerUpTimer = 220; 
+    scoreElement.textContent = '0m';
     gamePaused = false;
-    gameActive = true;
-    overlay.classList.add('hidden');
-    container.classList.add('game-active');
     
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    lastTime = performance.now();
-    requestAnimationFrame(gameLoop);
+    for (let i = 0; i < 4; i++) {
+        const cloud = new Cloud();
+        cloud.x = Math.random() * canvas.width;
+        clouds.push(cloud);
+    }
+
+    for (let x = 0; x < canvas.width + 200; x += 220) {
+        const board = new AdBoard();
+        board.x = x;
+        adBoards.push(board);
+    }
 }
 
 function startGame() {
     if (gameActive) return;
     initGame();
+    gameActive = true;
+    overlay.classList.add('hidden');
+    container.classList.add('game-active');
+    
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    
+    if (animationId) cancelAnimationFrame(animationId);
+    gameLoop();
 }
 
 function gameOver() {
     gameActive = false;
+    cancelAnimationFrame(animationId);
     playSound('lose');
-    shakeTime = 20;
-
+    shakeTime = 25;
+    
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('messiCupHighScore', highScore);
-        highScoreElement.textContent = highScore;
-        // Confetti burst
-        for (let i = 0; i < 80; i++) {
-            particles.push(new GoldConfetti(canvas.width / 2, canvas.height / 2 - 50));
+        localStorage.setItem('messiHighScore', highScore);
+        highScoreElement.textContent = `${highScore}m`;
+        
+        for(let i=0; i<80; i++) {
+            particles.push(new Particle(
+                canvas.width / 2 + (Math.random() - 0.5) * 300,
+                canvas.height / 3 + (Math.random() - 0.5) * 100,
+                `hsl(${Math.random() * 360}, 95%, 60%)`,
+                'confetti'
+            ));
         }
+        playSound('milestone');
     }
-
-    overlayTitle.textContent = "¡Tarjeta Roja! 🟥";
+    
+    overlayTitle.textContent = "¡Árbitro Pita Fin! 🟥";
     overlayTitle.style.color = "var(--danger-color)";
-    overlayDesc.textContent = `¡Te barrieron! Juntaste ${score} Copas del Mundo.`;
-    startBtn.textContent = "Jugar de nuevo";
+    overlayDesc.textContent = `¡Te barrieron! Dribblaste con éxito una distancia de ${score} metros antes de perder la pelota.`;
+    startBtn.textContent = "Volver a Intentar";
+    
     overlay.classList.remove('hidden');
     container.classList.remove('game-active');
+}
+
+function gameLoop() {
+    if (!gameActive) return;
+    if (!gamePaused) {
+        update();
+        draw();
+    }
+    animationId = requestAnimationFrame(gameLoop);
 }
 
 function togglePause() {
     if (!gameActive) return;
     gamePaused = !gamePaused;
+    
     if (gamePaused) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 16px "Space Mono"';
+        ctx.font = 'bold 20px "Space Mono"';
         ctx.textAlign = 'center';
-        ctx.fillText('JUEGO PAUSADO', canvas.width / 2, canvas.height / 2 - 10);
-        ctx.font = '11px "Space Mono"';
-        ctx.fillText('Presiona "P" para Continuar', canvas.width / 2, canvas.height / 2 + 15);
-    } else {
-        lastTime = performance.now();
-        requestAnimationFrame(gameLoop);
+        ctx.fillText('JUEGO PAUSADO', canvas.width / 2, canvas.height / 2);
+        ctx.font = '12px "Space Mono"';
+        ctx.fillText('Presiona "P" para Reanudar', canvas.width / 2, canvas.height / 2 + 30);
     }
 }
 
-// Collisions
-function checkCollision(r1, r2) {
-    return r1.x < r2.x + r2.width &&
-           r1.x + r1.width > r2.x &&
-           r1.y < r2.y + r2.height &&
-           r1.y + r1.height > r2.y;
-}
-
-// Input Jump triggers
-function triggerJump() {
-    if (!gameActive || gamePaused) return;
-    if (!player.isJumping) {
-        player.isJumping = true;
-        player.vy = player.jumpStrength;
-        playSound('jump');
-    }
-}
-
-// Game Loop Update
-function update(dt) {
-    // 1. Physics & Ground limits
-    player.vy += player.gravity;
-    player.y += player.vy;
+// Game Updates
+function update() {
+    gameFrame++;
     
-    if (player.y >= groundY - player.height) {
-        player.y = groundY - player.height;
-        player.vy = 0;
-        player.isJumping = false;
+    // Incremental speed based on run time
+    if (speed < maxSpeed) {
+        speed += speedStep;
     }
-
-    // 2. Running animations & dust
-    if (!player.isJumping) {
-        player.runCycle += 0.22;
-        player.ballAngle += 0.25;
-        if (Math.random() > 0.45) {
-            particles.push(new RunningDust(player.x + 4, groundY - 2));
+    
+    // Distance tracking
+    if (gameFrame % 8 === 0) {
+        score++;
+        scoreElement.textContent = `${score}m`;
+        if (score > 0 && score % 100 === 0) {
+            playSound('milestone');
         }
-    } else {
-        player.ballAngle += 0.05; // Rolls slower in air
     }
-
-    // 3. Increment speed gradually
-    speed += 0.0006;
-
-    // 4. Scroll background elements
-    fieldLinesOffset = (fieldLinesOffset + speed) % 120;
-
-    // 5. Spawn logic over time
-    const now = Date.now();
-    if (now > nextObstacleTime) {
-        spawnObstacle();
-        // Dynamic intervals
-        nextObstacleTime = now + 1200 + Math.random() * 1800;
+    
+    messi.update();
+    
+    // Background Clouds
+    if (gameFrame % 140 === 0) {
+        clouds.push(new Cloud());
     }
-    if (now > nextCollectibleTime) {
-        spawnCollectible();
-        nextCollectibleTime = now + 2000 + Math.random() * 2500;
-    }
+    clouds.forEach((cloud, index) => {
+        cloud.update();
+        if (cloud.x < -100) clouds.splice(index, 1);
+    });
 
-    // 6. Move and handle obstacles
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        const obs = obstacles[i];
-        obs.x -= speed;
-
-        if (obs.x + obs.width < 0) {
-            obstacles.splice(i, 1);
-            score++; // Score +1 for jumping successfully
-            scoreElement.textContent = score;
-            continue;
+    // Scrolling Ad Boards
+    adBoards.forEach((board) => {
+        board.x -= speed;
+        if (board.x < -board.width) {
+            board.x = canvas.width + Math.random() * 80;
+            const newBoard = new AdBoard();
+            board.text = newBoard.text;
         }
+    });
+    
+    // Spawn World Cup (Power-Up)
+    nextPowerUpTimer--;
+    if (nextPowerUpTimer <= 0 && !messi.invincible) {
+        powerUps.push(new WorldCup());
+        nextPowerUpTimer = 400 + Math.random() * 350;
+    }
 
-        // Box collision
-        if (checkCollision(player, obs)) {
-            gameOver();
+    // World Cup powerup updates and collisions
+    powerUps.forEach((cup, index) => {
+        cup.update();
+        if (cup.x < -100) {
+            powerUps.splice(index, 1);
             return;
         }
-    }
-
-    // 7. Move and handle collectibles (world cups)
-    for (let i = collectibles.length - 1; i >= 0; i--) {
-        const col = collectibles[i];
-        col.x -= speed;
-
-        if (col.x + col.width < 0) {
-            collectibles.splice(i, 1);
-            continue;
-        }
-
-        // Grab cup
-        if (!col.collected && checkCollision(player, col)) {
-            col.collected = true;
-            score += 5; // Collectible is worth 5 extra points!
-            scoreElement.textContent = score;
-            playSound('eat');
-            
-            // Spawn gold sparkles
-            for (let p = 0; p < 12; p++) {
-                particles.push(new GoldConfetti(col.x + 10, col.y + 10));
+        if (
+            messi.x < cup.x + cup.width &&
+            messi.x + messi.width > cup.x &&
+            messi.y < cup.y + cup.height &&
+            messi.y + messi.height > cup.y
+        ) {
+            powerUps.splice(index, 1);
+            messi.invincible = true;
+            messi.invincibleTimer = 360; // 6 seconds of legend mode
+            playSound('powerup');
+            for(let i=0; i<30; i++) {
+                particles.push(new Particle(messi.x + 20, messi.y + 20, '#fbbf24', 'confetti'));
             }
-            
-            collectibles.splice(i, 1);
         }
+    });
+    
+    // Spawn Obstacles (Standing / Sliding)
+    nextObstacleTimer--;
+    if (nextObstacleTimer <= 0) {
+        const types = ['slide', 'stand'];
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        obstacles.push(new Obstacle(randomType));
+        nextObstacleTimer = 65 + Math.random() * 85 - (speed * 3.5);
     }
-
-    // 8. Particles
-    for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update();
-        if (particles[i].life <= 0 || particles[i].alpha <= 0) {
-            particles.splice(i, 1);
+    
+    // Obstacle updates and collisions
+    obstacles.forEach((obs, index) => {
+        obs.update();
+        if (obs.x < -200 || obs.y > canvas.height + 100) {
+            obstacles.splice(index, 1);
+            return;
         }
-    }
+        if (obs.launched) return;
 
-    // Screen Shake
+        const toleranceX = 8;
+        const toleranceY = 6;
+        if (
+            messi.x + toleranceX < obs.x + obs.width &&
+            messi.x + messi.width - toleranceX > obs.x &&
+            messi.y + toleranceY < obs.y + obs.height &&
+            messi.y + messi.height - toleranceY > obs.y
+        ) {
+            if (messi.invincible) {
+                obs.launched = true;
+                obs.vx = 8 + speed * 0.45;
+                obs.vy = -12 - Math.random() * 4;
+                obs.rotSpeed = 0.2 + Math.random() * 0.2;
+                playSound('kick');
+                score += 15;
+                shakeTime = 8;
+                for (let i = 0; i < 12; i++) {
+                    particles.push(new Particle(obs.x, obs.y + 10, '#fbbf24', 'gold-trail'));
+                }
+            } else {
+                gameOver();
+            }
+        }
+    });
+    
+    // Particles
+    particles.forEach((part, index) => {
+        part.update();
+        if (part.life <= 0) particles.splice(index, 1);
+    });
+    
     if (shakeTime > 0) shakeTime--;
 }
 
-// Drawing routines
+// Draw Screen
 function draw() {
     ctx.save();
-    
-    // Handle Game Over Screen Shake
     if (shakeTime > 0) {
         const dx = (Math.random() - 0.5) * 8;
         const dy = (Math.random() - 0.5) * 8;
         ctx.translate(dx, dy);
     }
-
-    // 1. Dark night background
-    ctx.fillStyle = '#080c15';
+    
+    // Cielo
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--canvas-bg').trim() || '#020617';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 2. Stadium Skyglow/Moon
-    const radGrd = ctx.createRadialGradient(canvas.width / 2, canvas.height, 10, canvas.width / 2, canvas.height, 350);
-    radGrd.addColorStop(0, 'rgba(56, 189, 248, 0.12)');
-    radGrd.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = radGrd;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 3. Draw Green Grass Pitch (Bottom half)
-    ctx.fillStyle = '#059669';
-    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
-
-    // Draw field lawn check lines (moving smoothly)
-    ctx.fillStyle = '#10b981';
-    for (let x = -120; x < canvas.width + 120; x += 120) {
-        ctx.fillRect(x - fieldLinesOffset, groundY, 60, canvas.height - groundY);
-    }
-
-    // Draw solid ground separation line
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    ctx.lineTo(canvas.width, groundY);
-    ctx.stroke();
-
-    // 4. Draw Collectibles (World Cups)
-    collectibles.forEach(col => {
-        const cx = col.x;
-        const cy = col.y;
-        
-        ctx.save();
-        ctx.shadowColor = '#fbbf24';
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = '#fbbf24';
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1.5;
-        
-        ctx.beginPath();
-        // Stand base
-        ctx.fillRect(cx + 4, cy + 16, 12, 3);
-        ctx.strokeRect(cx + 4, cy + 16, 12, 3);
-        // Neck
-        ctx.fillRect(cx + 8, cy + 9, 4, 7);
-        ctx.strokeRect(cx + 8, cy + 9, 4, 7);
-        // Cup head
-        ctx.beginPath();
-        ctx.arc(cx + 10, cy + 7, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-    });
-
-    // 5. Draw Particles (Dust, Confetti)
-    particles.forEach(p => p.draw());
-
-    // 6. Draw Obstacles (Rivals & Red Cards)
-    obstacles.forEach(obs => {
-        ctx.save();
-        if (obs.type === 'standing_rival') {
-            const rx = obs.x;
-            const ry = obs.y;
-            
-            // Draw Standing Rival (Red jersey, angry face)
-            // Jersey
-            ctx.fillStyle = '#ef4444';
-            ctx.fillRect(rx + 4, ry + 16, 20, 28);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(rx + 4, ry + 16, 20, 28);
-            
-            // Neck & Face
-            ctx.fillStyle = '#ffd6ad';
-            ctx.fillRect(rx + 9, ry + 8, 10, 8);
-            ctx.strokeRect(rx + 9, ry + 8, 10, 8);
-
-            // Dark hair
-            ctx.fillStyle = '#1c1917';
-            ctx.fillRect(rx + 7, ry + 4, 14, 6);
-            ctx.strokeRect(rx + 7, ry + 4, 14, 6);
-
-            // Red strip
-            ctx.fillStyle = '#b91c1c';
-            ctx.fillRect(rx + 12, ry + 16, 4, 28);
-
-        } else if (obs.type === 'sliding_rival') {
-            const sx = obs.x;
-            const sy = obs.y;
-
-            // Draw sliding defender (Horizontal box + dust trail)
-            ctx.fillStyle = '#ef4444';
-            ctx.fillRect(sx, sy + 6, 38, 16);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(sx, sy + 6, 38, 16);
-
-            // Head sliding ahead
-            ctx.fillStyle = '#ffd6ad';
-            ctx.beginPath();
-            ctx.arc(sx + 8, sy + 10, 6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-
-            // Slide dust
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.fillRect(sx + 30, sy + 14, 12, 6);
-
-        } else if (obs.type === 'red_card') {
-            const cx = obs.x;
-            const cy = obs.y;
-
-            // Floating Red Card (Glowing red rectangle)
-            ctx.shadowColor = '#ef4444';
-            ctx.shadowBlur = 10;
-            ctx.fillStyle = '#ef4444';
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1.5;
-            ctx.fillRect(cx, cy, obs.width, obs.height);
-            ctx.strokeRect(cx, cy, obs.width, obs.height);
-        }
-        ctx.restore();
-    });
-
-    // 7. Draw Player (Messi + Soccer Ball)
-    const px = player.x;
-    const py = player.y;
-    ctx.save();
-
-    // Legs animation based on runCycle
-    const leftLegOffset = player.isJumping ? 8 : Math.sin(player.runCycle) * 10;
-    const rightLegOffset = player.isJumping ? -8 : -Math.sin(player.runCycle) * 10;
-
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2.5;
-
-    // Left leg
-    ctx.fillStyle = '#ffd6ad';
-    ctx.fillRect(px + 6, py + 38 + leftLegOffset / 2, 5, 8 - leftLegOffset / 2);
-    ctx.strokeRect(px + 6, py + 38 + leftLegOffset / 2, 5, 8 - leftLegOffset / 2);
     
-    // Right leg
-    ctx.fillRect(px + 17, py + 38 + rightLegOffset / 2, 5, 8 - rightLegOffset / 2);
-    ctx.strokeRect(px + 17, py + 38 + rightLegOffset / 2, 5, 8 - rightLegOffset / 2);
-
-    // Jersey (Argentina Shirt: Sky blue & white stripes)
-    ctx.fillStyle = '#38bdf8'; // Sky blue
-    ctx.fillRect(px + 3, py + 18, 22, 20);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(px + 3, py + 18, 22, 20);
+    // Estadio & Reflectores
+    drawStadiumBackground();
+    clouds.forEach(cloud => cloud.draw());
+    drawAdBoards();
+    drawGround();
     
-    // White vertical stripes
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(px + 8, py + 18, 4, 20);
-    ctx.fillRect(px + 16, py + 18, 4, 20);
-
-    // Dennis-style Head (Blonde spikes + face)
-    ctx.fillStyle = '#ffd6ad';
-    ctx.beginPath();
-    ctx.arc(px + 14, py + 12, 7.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Hair (Yellow spiky hair)
-    ctx.fillStyle = '#fbbf24';
-    ctx.beginPath();
-    ctx.arc(px + 14, py + 9, 8.5, Math.PI, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    // Particles & Cups
+    particles.forEach(part => part.draw());
+    powerUps.forEach(cup => cup.draw());
+    obstacles.forEach(obs => obs.draw());
     
-    // Spiky details
-    ctx.beginPath();
-    ctx.moveTo(px + 5, py + 9);
-    ctx.lineTo(px + 2, py + 3);
-    ctx.lineTo(px + 10, py + 7);
-    ctx.lineTo(px + 14, py + 1);
-    ctx.lineTo(px + 18, py + 7);
-    ctx.lineTo(px + 25, py + 3);
-    ctx.lineTo(px + 23, py + 9);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Eyes
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(px + 12, py + 12, 1, 0, Math.PI * 2);
-    ctx.arc(px + 17, py + 12, 1, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Big Smile
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(px + 14, py + 14, 3, 0.1, Math.PI - 0.1);
-    ctx.stroke();
-
-    // 8. Draw Soccer Ball at his feet
-    const bx = px + 28;
-    const by = py + 32;
-    const bRadius = 7.5;
-
-    ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(player.ballAngle);
-
-    // Ball Base
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(0, 0, bRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Black hexagon patterns on the ball
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.arc(0, 0, bRadius * 0.35, 0, Math.PI * 2);
-    ctx.fill();
-
-    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 3) {
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(angle) * (bRadius * 0.35), Math.sin(angle) * (bRadius * 0.35));
-        ctx.lineTo(Math.cos(angle) * bRadius, Math.sin(angle) * bRadius);
-        ctx.stroke();
+    messi.draw();
+    
+    if (messi.invincible) {
+        drawPowerUpBar();
     }
     ctx.restore();
-
-    ctx.restore(); // Restore Player translation
-    ctx.restore(); // Restore Shake translation
 }
 
-// 60 FPS Game Loop using RequestAnimationFrame & Delta Time
-function gameLoop(timestamp) {
-    if (!gameActive) return;
-    if (gamePaused) return;
+function drawStadiumBackground() {
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY + 50);
+    skyGrad.addColorStop(0, '#020512');
+    skyGrad.addColorStop(1, '#0b0f19');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, groundY + 50);
 
-    // Calculate actual delta-time to keep movement constant
-    const dt = timestamp - lastTime;
-    lastTime = timestamp;
+    const beamGrad1 = ctx.createLinearGradient(104, 25, 150, groundY + 50);
+    beamGrad1.addColorStop(0, 'rgba(56, 189, 248, 0.12)');
+    beamGrad1.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+    ctx.fillStyle = beamGrad1;
+    ctx.beginPath();
+    ctx.moveTo(104, 25);
+    ctx.lineTo(0, groundY + 50);
+    ctx.lineTo(250, groundY + 50);
+    ctx.closePath();
+    ctx.fill();
 
-    update(dt);
-    draw();
+    const beamGrad2 = ctx.createLinearGradient(704, 25, 650, groundY + 50);
+    beamGrad2.addColorStop(0, 'rgba(56, 189, 248, 0.12)');
+    beamGrad2.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+    ctx.fillStyle = beamGrad2;
+    ctx.beginPath();
+    ctx.moveTo(704, 25);
+    ctx.lineTo(550, groundY + 50);
+    ctx.lineTo(canvas.width, groundY + 50);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.35)';
+    ctx.fillRect(100, 30, 8, groundY - 30);
+    ctx.fillRect(92, 20, 24, 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(104, 25, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.35)';
+    ctx.fillRect(700, 30, 8, groundY - 30);
+    ctx.fillRect(692, 20, 24, 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(704, 25, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(0, groundY + 50);
+    ctx.lineTo(0, 135);
+    ctx.quadraticCurveTo(canvas.width / 2, 110, canvas.width, 135);
+    ctx.lineTo(canvas.width, groundY + 50);
+    ctx.fill();
 
-    requestAnimationFrame(gameLoop);
+    ctx.fillStyle = 'rgba(21, 29, 45, 0.7)';
+    const bounceOffset = (gameFrame % 20 < 10) ? 1 : 0; 
+    for (let x = 10; x < canvas.width; x += 16) {
+        const heightY = 135 + Math.sin(x * 0.05) * 5 + bounceOffset;
+        ctx.beginPath();
+        ctx.arc(x, heightY, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    for (let i = 0; i < 18; i++) {
+        const flashX = (Math.sin(i * 37.3) * 0.5 + 0.5) * canvas.width;
+        const flashY = 110 + (Math.cos(i * 49.7) * 0.5 + 0.5) * 25 + Math.sin(gameFrame * 0.05 + i) * 2;
+        if (Math.sin(gameFrame * 0.12 + i * 2.7) > 0.85) {
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ffffff';
+            ctx.fillRect(flashX, flashY, 2.5, 2.5);
+            ctx.shadowBlur = 0;
+        }
+    }
 }
 
-// Keyboard events
-window.addEventListener('keydown', e => {
-    if (e.code === 'KeyP') { 
-        e.preventDefault(); 
-        togglePause(); 
-        return; 
-    }
-    if (e.code === 'Space' || e.code === 'ArrowUp') {
-        e.preventDefault();
-        triggerJump();
-    }
-});
-
-// Canvas click/touch anywhere to jump
-canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
-    triggerJump();
-}, { passive: false });
-
-canvas.addEventListener('mousedown', e => {
-    e.preventDefault();
-    triggerJump();
-});
-
-// Mobile Jump Button
-const jumpBtn = document.getElementById('jump-btn');
-if (jumpBtn) {
-    jumpBtn.addEventListener('touchstart', e => {
-        e.preventDefault();
-        triggerJump();
-    }, { passive: false });
-
-    jumpBtn.addEventListener('mousedown', e => {
-        e.preventDefault();
-        triggerJump();
+function drawAdBoards() {
+    adBoards.forEach(board => {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(board.x, board.y, board.width, board.height);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(board.x, board.y, board.width, board.height);
+        
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(board.x + 20, board.y + board.height, 6, 4);
+        ctx.fillRect(board.x + board.width - 26, board.y + board.height, 6, 4);
+        
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 7.5px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        
+        if (gameFrame % 40 > 8) {
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 4;
+            ctx.fillText(board.text, board.x + board.width / 2, board.y + board.height - 3.5);
+            ctx.shadowBlur = 0;
+        }
     });
 }
 
-// Menu Start Button
-startBtn.addEventListener('click', () => {
-    startGame();
+function drawGround() {
+    const grassTop = groundY + 68;
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, grassTop, canvas.width, canvas.height - grassTop);
+    
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(0, grassTop, canvas.width, 4);
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+    const lineWidth = 30;
+    const gapWidth = 90;
+    const totalStep = lineWidth + gapWidth;
+    let xOffset = -(gameFrame * speed) % totalStep;
+    
+    for (let x = xOffset; x < canvas.width; x += totalStep) {
+        ctx.fillRect(x, grassTop + 12, lineWidth, 3.5);
+    }
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.fillRect(0, grassTop + 8, canvas.width, 2.5);
+}
+
+function drawPowerUpBar() {
+    const barWidth = 240;
+    const barHeight = 8;
+    const barX = canvas.width / 2 - barWidth / 2;
+    const barY = 22;
+    const percentage = messi.invincibleTimer / 360;
+    
+    ctx.save();
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 8.5px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#fbbf24';
+    ctx.shadowBlur = 5;
+    ctx.fillText('¡MODO LEYENDA INVENCIBLE!', canvas.width / 2, barY - 7);
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth, barHeight, 3);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.stroke();
+    
+    const fillWidth = barWidth * percentage;
+    const grad = ctx.createLinearGradient(barX, 0, barX + barWidth, 0);
+    grad.addColorStop(0, '#fbbf24');
+    grad.addColorStop(1, '#f59e0b');
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, fillWidth, barHeight, 3);
+    ctx.fill();
+    ctx.restore();
+}
+
+// Input Event Handlers
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyP') {
+        togglePause();
+        return;
+    }
+    if (!gameActive || gamePaused) return;
+    
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        messi.startJump();
+    }
 });
 
-// Sound Toggle
+window.addEventListener('keyup', (e) => {
+    if (!gameActive || gamePaused) return;
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        messi.stopJump();
+    }
+});
+
+startBtn.addEventListener('click', startGame);
+
 soundToggle.addEventListener('click', () => {
     soundMuted = !soundMuted;
     localStorage.setItem('messiSoundMuted', soundMuted);
@@ -696,14 +1153,65 @@ soundToggle.addEventListener('click', () => {
     soundToggle.blur();
 });
 
-// Initial draw before start
-ctx.fillStyle = '#080c15';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = '#059669';
-ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
-ctx.strokeStyle = '#ffffff';
-ctx.lineWidth = 3;
-ctx.beginPath();
-ctx.moveTo(0, groundY);
-ctx.lineTo(canvas.width, groundY);
-ctx.stroke();
+// Touch and Mouse Jump Controls (Supports holding down)
+const jumpBtn = document.getElementById('touch-jump');
+
+if (jumpBtn) {
+    jumpBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (!gameActive || gamePaused) return;
+        jumpBtn.classList.add('pressed');
+        messi.startJump();
+    }, { passive: false });
+
+    jumpBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        jumpBtn.classList.remove('pressed');
+        messi.stopJump();
+    }, { passive: false });
+
+    jumpBtn.addEventListener('mousedown', (e) => {
+        if (!gameActive || gamePaused) return;
+        jumpBtn.classList.add('pressed');
+        messi.startJump();
+    });
+
+    jumpBtn.addEventListener('mouseup', () => {
+        jumpBtn.classList.remove('pressed');
+        messi.stopJump();
+    });
+
+    jumpBtn.addEventListener('mouseleave', () => {
+        jumpBtn.classList.remove('pressed');
+        messi.stopJump();
+    });
+}
+
+// Direct Canvas Taps (Tap to jump, supports hold)
+canvas.addEventListener('touchstart', (e) => {
+    if (!gameActive || gamePaused) return;
+    e.preventDefault();
+    messi.startJump();
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    if (!gameActive || gamePaused) return;
+    e.preventDefault();
+    messi.stopJump();
+}, { passive: false });
+
+canvas.addEventListener('mousedown', (e) => {
+    if (!gameActive || gamePaused) return;
+    e.preventDefault();
+    messi.startJump();
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (!gameActive || gamePaused) return;
+    e.preventDefault();
+    messi.stopJump();
+});
+
+// Setup initial static frame
+initGame();
+draw();
