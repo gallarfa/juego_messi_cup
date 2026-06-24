@@ -758,6 +758,8 @@ function startGame() {
         audioCtx.resume();
     }
     
+    lastTime = 0;
+    accumulator = 0;
     if (animationId) cancelAnimationFrame(animationId);
     gameLoop();
 }
@@ -793,12 +795,37 @@ function gameOver() {
     container.classList.remove('game-active');
 }
 
-function gameLoop() {
+let lastTime = 0;
+const timestep = 1000 / 60; // 16.666 ms (60 FPS target)
+let accumulator = 0;
+
+function gameLoop(timestamp) {
     if (!gameActive) return;
-    if (!gamePaused) {
-        update();
+    if (!timestamp) {
+        timestamp = performance.now();
+    }
+    if (!lastTime) lastTime = timestamp;
+    let elapsed = timestamp - lastTime;
+    lastTime = timestamp;
+    
+    // Avoid spiral of death if the tab is backgrounded
+    if (elapsed > 100) elapsed = 100;
+    
+    accumulator += elapsed;
+    
+    let updated = false;
+    while (accumulator >= timestep) {
+        if (!gamePaused) {
+            update();
+            updated = true;
+        }
+        accumulator -= timestep;
+    }
+    
+    if (updated || gamePaused) {
         draw();
     }
+    
     animationId = requestAnimationFrame(gameLoop);
 }
 
