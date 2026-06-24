@@ -119,10 +119,10 @@ function playSound(type) {
 
 // Config and Physics
 const groundY = 220;
-let speed = 5.2;
-const baseSpeed = 5.2;
-const maxSpeed = 13.5;
-const speedStep = 0.00045; // Speed increases as you run
+let speed = 6.8;
+const baseSpeed = 6.8;
+const maxSpeed = 15.0;
+const speedStep = 0.0006; // Speed increases as you run
 let gameFrame = 0;
 let score = 0;
 let highScore = localStorage.getItem('messiHighScore') || 0;
@@ -288,8 +288,8 @@ class Messi {
         this.width = 46;
         this.height = 72;
         this.vy = 0;
-        this.gravity = 0.62;
-        this.jumpForce = -12.5;
+        this.gravity = 0.82;
+        this.jumpForce = -14.5;
         this.jumping = false;
         this.isHoldingJump = false; // Flag for variable jump height
         
