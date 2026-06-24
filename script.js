@@ -10,6 +10,21 @@ const startBtn = document.getElementById('start-btn');
 const soundToggle = document.getElementById('sound-toggle');
 const container = document.querySelector('.game-container');
 
+// Detect mobile device to disable expensive canvas shadow effects and preserve 60 FPS
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768) || ('ontouchstart' in window);
+
+function setGlow(color, blur) {
+    if (isMobile) return;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blur;
+}
+
+function clearGlow() {
+    if (isMobile) return;
+    ctx.shadowBlur = 0;
+}
+
+
 // Audio Context and Synth Sounds
 let audioCtx = null;
 let soundMuted = localStorage.getItem('messiSoundMuted') === 'true';
@@ -136,7 +151,7 @@ class AdBoard {
         this.messages = [
             "★ GOAT 10 ★", 
             "CAMPEONES DEL MUNDO ⭐⭐⭐", 
-            "MESSI RUNNER", 
+            "MESSI CUP", 
             "DANIEL EL TRAVIESO", 
             "EL REY LEO",
             "VAMOS ARGENTINA 🇦🇷"
@@ -224,8 +239,7 @@ class WorldCup {
     draw() {
         ctx.save();
         const glow = 5 + Math.sin(this.pulse) * 4;
-        ctx.shadowColor = '#fbbf24';
-        ctx.shadowBlur = glow;
+        setGlow('#fbbf24', glow);
         const cupX = this.x;
         const cupY = this.y;
 
@@ -374,8 +388,7 @@ class Messi {
         
         if (this.invincible) {
             if (this.invincibleTimer > 90 || Math.floor(gameFrame / 5) % 2 === 0) {
-                ctx.shadowColor = '#fbbf24';
-                ctx.shadowBlur = 18;
+                setGlow('#fbbf24', 18);
             }
         }
         
@@ -530,8 +543,7 @@ class Messi {
         ctx.rotate(this.ball.rotation);
         
         if (this.invincible) {
-            ctx.shadowColor = '#fbbf24';
-            ctx.shadowBlur = 10;
+            setGlow('#fbbf24', 10);
         }
         
         ctx.fillStyle = this.invincible ? '#fbbf24' : '#ffffff';
@@ -992,23 +1004,21 @@ function drawStadiumBackground() {
     ctx.fillRect(100, 30, 8, groundY - 30);
     ctx.fillRect(92, 20, 24, 10);
     ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 8;
+    setGlow('#ffffff', 8);
     ctx.beginPath();
     ctx.arc(104, 25, 6, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    clearGlow();
     
     ctx.fillStyle = 'rgba(30, 41, 59, 0.35)';
     ctx.fillRect(700, 30, 8, groundY - 30);
     ctx.fillRect(692, 20, 24, 10);
     ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 8;
+    setGlow('#ffffff', 8);
     ctx.beginPath();
     ctx.arc(704, 25, 6, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    clearGlow();
     
     ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
     ctx.beginPath();
@@ -1032,10 +1042,9 @@ function drawStadiumBackground() {
         const flashY = 110 + (Math.cos(i * 49.7) * 0.5 + 0.5) * 25 + Math.sin(gameFrame * 0.05 + i) * 2;
         if (Math.sin(gameFrame * 0.12 + i * 2.7) > 0.85) {
             ctx.fillStyle = '#ffffff';
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#ffffff';
+            setGlow('#ffffff', 10);
             ctx.fillRect(flashX, flashY, 2.5, 2.5);
-            ctx.shadowBlur = 0;
+            clearGlow();
         }
     }
 }
@@ -1057,10 +1066,9 @@ function drawAdBoards() {
         ctx.textAlign = 'center';
         
         if (gameFrame % 40 > 8) {
-            ctx.shadowColor = '#fbbf24';
-            ctx.shadowBlur = 4;
+            setGlow('#fbbf24', 4);
             ctx.fillText(board.text, board.x + board.width / 2, board.y + board.height - 3.5);
-            ctx.shadowBlur = 0;
+            clearGlow();
         }
     });
 }
@@ -1098,12 +1106,11 @@ function drawPowerUpBar() {
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 8.5px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#fbbf24';
-    ctx.shadowBlur = 5;
+    setGlow('#fbbf24', 5);
     ctx.fillText('¡MODO LEYENDA INVENCIBLE!', canvas.width / 2, barY - 7);
     
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.shadowBlur = 0;
+    clearGlow();
     ctx.beginPath();
     ctx.roundRect(barX, barY, barWidth, barHeight, 3);
     ctx.fill();

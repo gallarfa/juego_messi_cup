@@ -182,6 +182,11 @@ h1 {
     box-shadow: inset 0 0 35px rgba(0,0,0,0.95);
     border: 2px solid rgba(56, 189, 248, 0.2);
     animation: border-pulse 4s infinite alternate ease-in-out;
+    transition: min-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.game-container:not(.game-active) .canvas-container {
+    min-height: 390px; /* Estira el contenedor para que entren la cabecera, guía de controles y el botón Iniciar/Reintentar sin recortar */
 }
 
 @keyframes border-pulse {
@@ -488,10 +493,12 @@ canvas {
     .game-container {
         padding: 1.1rem;
         border-radius: 20px;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(17, 24, 39, 0.92); /* Más opaco para que se lea perfecto sin el blur de fondo */
     }
-    /* Estirar el menú de inicio para que no se recorte */
     .game-container:not(.game-active) .canvas-container {
-        min-height: 290px;
+        min-height: 310px;
     }
     .game-header {
         margin-bottom: 1rem;
