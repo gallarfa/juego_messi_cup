@@ -487,76 +487,162 @@ canvas {
     display: flex;
 }
 
+/* Rotar pantalla banner */
+.rotate-notice {
+    display: none;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    color: var(--sky-blue);
+    text-align: center;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-bottom: 0.8rem;
+    width: 100%;
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+    .rotate-notice {
+        display: block;
+        animation: pulse-glow 2s infinite alternate;
+    }
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 4px rgba(56, 189, 248, 0.1);
+        border-color: rgba(56, 189, 248, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+        border-color: rgba(56, 189, 248, 0.5);
+    }
+}
+
 /* Adaptación responsive para celulares */
 @media (max-width: 768px) {
     body {
-        padding: 4px;
+        padding: 0;
+        margin: 0;
+        overflow-x: hidden;
     }
+    
     .game-container {
-        padding: 0.8rem;
-        border-radius: 16px;
+        padding: 0.6rem;
+        border-radius: 0;
+        border: none;
+        max-width: 100vw;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: var(--bg-color);
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        background: rgba(17, 24, 39, 0.92); /* Más opaco para que se lea perfecto sin el blur de fondo */
     }
+    
     .game-container:not(.game-active) .canvas-container {
-        min-height: 310px;
+        min-height: 290px;
     }
+    
     .game-header {
-        margin-bottom: 1rem;
-        flex-direction: row;
+        margin-bottom: 0.6rem;
+        padding: 4px 8px;
+        display: flex;
         justify-content: space-between;
         align-items: center;
     }
+    
+    /* Ocultar título y link de volver en móviles durante la partida para ganar espacio vertical */
+    .game-active .header-left {
+        display: none !important;
+    }
+    
+    .game-active .game-header {
+        justify-content: center;
+        margin-bottom: 0.3rem;
+    }
+    
     h1 {
-        font-size: 1.15rem;
+        font-size: 1.05rem;
     }
+    
     .score-board {
-        gap: 0.4rem;
+        gap: 0.5rem;
     }
+    
     .score-box {
-        padding: 0.4rem 0.55rem;
-        min-width: 75px;
+        padding: 0.4rem 0.6rem;
+        min-width: 85px;
         border-radius: 10px;
     }
+    
     .score-label {
         font-size: 0.55rem;
     }
+    
     .score-value {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
     }
+    
     #overlay-title {
         font-size: 1.25rem;
         margin-bottom: 0.5rem;
     }
+    
     #overlay-desc {
         font-size: 0.75rem;
         margin-bottom: 0.8rem;
         max-width: 100%;
     }
+    
     .messi-art-preview {
         display: none !important; /* Esconder caricatura para evitar cortes en celulares */
     }
+    
     .controls-guide {
         display: none !important; /* Esconder guía en móviles */
     }
+    
     .primary-btn {
         width: 100%;
         max-width: 240px;
         margin: 0 auto;
-        padding: 0.9rem 1.8rem;
-        font-size: 1.05rem;
+        padding: 0.85rem 1.8rem;
+        font-size: 1rem;
         border-radius: 12px;
     }
+    
+    /* Controles táctiles móviles en pantalla */
     .touch-controls {
-        margin-top: 1rem;
-        width: 100%;
+        margin-top: 0.6rem;
+        margin-bottom: 0.6rem;
+        display: none;
         justify-content: center;
+        width: 100%;
+        padding-bottom: env(safe-area-inset-bottom);
     }
+    
+    .game-active .touch-controls {
+        display: flex;
+    }
+    
     .touch-btn {
-        height: 90px;
-        width: 90px;
+        height: 85px;
+        width: 85px;
         border-radius: 50%;
+    }
+    
+    /* Ocultar footer durante el juego para ganar espacio vertical */
+    .game-active .game-footer {
+        display: none !important;
+    }
+    
+    .game-footer {
+        margin-top: 0.8rem;
+        font-size: 0.7rem;
     }
 }
 

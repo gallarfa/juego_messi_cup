@@ -191,12 +191,19 @@ class Particle {
         this.radius = type === 'confetti' ? 2.5 + Math.random() * 3.5 : 1 + Math.random() * 2.5;
         this.vx = type === 'confetti' ? (Math.random() - 0.5) * 7 : -speed * 0.35 + (Math.random() - 0.5) * 2;
         this.vy = type === 'confetti' ? -Math.random() * 8 : (Math.random() - 0.75) * 3;
+        
         if (type === 'gold-trail') {
             this.vx = -speed * 0.7 - Math.random() * 2;
             this.vy = (Math.random() - 0.5) * 3;
+        } else if (type === 'ball-trail') {
+            this.vx = -speed * 0.25 - Math.random() * 1;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.radius = 1.8 + Math.random() * 1.5;
         }
+        
         this.alpha = 1;
-        this.life = type === 'confetti' ? 90 + Math.random() * 30 : 20 + Math.random() * 15;
+        this.life = type === 'confetti' ? 90 + Math.random() * 30 : 
+                    type === 'ball-trail' ? 10 + Math.random() * 8 : 20 + Math.random() * 15;
         this.maxLife = this.life;
     }
     update() {
@@ -288,10 +295,10 @@ class Messi {
         this.width = 46;
         this.height = 72;
         this.vy = 0;
-        this.gravity = 1.0;
-        this.jumpForce = -17.5;
+        this.gravity = 1.35;
+        this.jumpForce = -22.0;
         this.jumping = false;
-        this.isHoldingJump = false; // Flag for variable jump height
+        this.isHoldingJump = false; // Kept for interface compatibility but not capping height anymore
         
         this.ball = {
             rotation: 0,
@@ -342,15 +349,9 @@ class Messi {
             }
         }
 
-        // Gravity with variable cutoff
+        // Gravity with constant full-force jump (instantly fast and high from a single tap)
         if (this.jumping) {
             this.vy += this.gravity;
-            
-            // Variable jump height: if button released early, cap upward velocity to allow a solid minimum jump
-            if (!this.isHoldingJump && this.vy < -8.5) {
-                this.vy = -8.5;
-            }
-
             this.y += this.vy;
             
             if (this.y >= groundY) {
@@ -372,6 +373,18 @@ class Messi {
             this.ball.yOffset = 56 + Math.sin(legPhase) * 3;
             this.ball.xOffset = 38 + Math.cos(legPhase) * 6;
         }
+
+        // Spawn ball trail particles
+        const ballX = this.x + this.ball.xOffset;
+        const ballY = this.y + this.ball.yOffset;
+        if (gameFrame % 2 === 0) {
+            particles.push(new Particle(
+                ballX, 
+                ballY, 
+                this.invincible ? '#fbbf24' : 'rgba(56, 189, 248, 0.45)', 
+                'ball-trail'
+            ));
+        }
         
         // Dust trail
         if (!this.jumping && gameFrame % 3 === 0) {
@@ -383,6 +396,19 @@ class Messi {
         const bounce = (!this.jumping) ? Math.sin(gameFrame * 0.2) * 2 : 0;
         const bodyX = this.x;
         const bodyY = this.y + bounce;
+
+        // Draw dynamic shadow under Messi on the grass
+        const grassTop = groundY + 68;
+        const heightOffGround = groundY - this.y;
+        const shadowScale = Math.max(0.3, 1 - (heightOffGround / 150));
+        const shadowAlpha = Math.max(0.05, 0.35 - (heightOffGround / 180));
+        
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${shadowAlpha})`;
+        ctx.beginPath();
+        ctx.ellipse(bodyX + 22, grassTop + 2, 18 * shadowScale, 5 * shadowScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
         
         ctx.save();
         
@@ -1102,24 +1128,51 @@ function drawAdBoards() {
 
 function drawGround() {
     const grassTop = groundY + 68;
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, grassTop, canvas.width, canvas.height - grassTop);
+    const groundHeight = canvas.height - grassTop;
     
-    ctx.fillStyle = '#10b981';
-    ctx.fillRect(0, grassTop, canvas.width, 4);
+    // Base green pitch gradient (from emerald to deep forest green)
+    const pitchGrad = ctx.createLinearGradient(0, grassTop, 0, canvas.height);
+    pitchGrad.addColorStop(0, '#0f5132'); 
+    pitchGrad.addColorStop(1, '#052c16'); 
+    ctx.fillStyle = pitchGrad;
+    ctx.fillRect(0, grassTop, canvas.width, groundHeight);
     
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-    const lineWidth = 30;
-    const gapWidth = 90;
-    const totalStep = lineWidth + gapWidth;
-    let xOffset = -(gameFrame * speed) % totalStep;
+    // Alternating horizontal turf stripes that scroll
+    const stripeWidth = 80;
+    let xOffset = -(gameFrame * speed) % (stripeWidth * 2);
     
-    for (let x = xOffset; x < canvas.width; x += totalStep) {
-        ctx.fillRect(x, grassTop + 12, lineWidth, 3.5);
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.08)'; 
+    for (let x = xOffset - stripeWidth; x < canvas.width + stripeWidth; x += stripeWidth * 2) {
+        ctx.fillRect(x, grassTop, stripeWidth, groundHeight);
     }
     
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-    ctx.fillRect(0, grassTop + 8, canvas.width, 2.5);
+    // 3D Perspective Lines (Depth markers expanding outwards)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.lineWidth = 1.5;
+    const numGridLines = 12;
+    for (let i = 0; i <= numGridLines; i++) {
+        const factor = (i - numGridLines / 2) / (numGridLines / 2); // Ranges -1 to 1
+        const startX = (canvas.width / 2) + factor * (canvas.width / 2) * 1.6;
+        ctx.beginPath();
+        // Lines converge toward the horizon (grassTop)
+        ctx.moveTo(canvas.width / 2 + factor * 40, grassTop);
+        ctx.lineTo(startX, canvas.height);
+        ctx.stroke();
+    }
+    
+    // Glowing neon upper sideline
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(0, grassTop, canvas.width, 3);
+    
+    // Scrolling pitch white dashes (sideline markers)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    const lineWidth = 40;
+    const gapWidth = 140;
+    const totalStep = lineWidth + gapWidth;
+    let markerOffset = -(gameFrame * speed) % totalStep;
+    for (let x = markerOffset; x < canvas.width; x += totalStep) {
+        ctx.fillRect(x, grassTop + 14, lineWidth, 3);
+    }
 }
 
 function drawPowerUpBar() {
@@ -1243,6 +1296,42 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mouseup', (e) => {
     if (!gameActive || gamePaused) return;
     e.preventDefault();
+    messi.stopJump();
+});
+
+// Global screen tap/click fallback to maximize sensitivity and responsiveness on mobile
+document.addEventListener('touchstart', (e) => {
+    // Avoid double triggering if tapped directly on canvas or jump button
+    if (e.target === canvas || e.target.closest('#touch-jump')) return;
+    // Don't jump when clicking control UI buttons
+    if (e.target.closest('.back-btn') || e.target.closest('#sound-toggle') || e.target.closest('#start-btn') || e.target.closest('.overlay')) return;
+    
+    if (!gameActive || gamePaused) return;
+    
+    // Add pressed visual effect to the jump button for visual feedback
+    if (jumpBtn) jumpBtn.classList.add('pressed');
+    messi.startJump();
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+    if (e.target === canvas || e.target.closest('#touch-jump')) return;
+    if (!gameActive || gamePaused) return;
+    if (jumpBtn) jumpBtn.classList.remove('pressed');
+    messi.stopJump();
+});
+
+document.addEventListener('mousedown', (e) => {
+    if (e.target === canvas || e.target.closest('#touch-jump')) return;
+    if (e.target.closest('.back-btn') || e.target.closest('#sound-toggle') || e.target.closest('#start-btn') || e.target.closest('.overlay')) return;
+    
+    if (!gameActive || gamePaused) return;
+    if (jumpBtn) jumpBtn.classList.add('pressed');
+    messi.startJump();
+});
+
+document.addEventListener('mouseup', (e) => {
+    if (jumpBtn) jumpBtn.classList.remove('pressed');
+    if (!gameActive || gamePaused) return;
     messi.stopJump();
 });
 
