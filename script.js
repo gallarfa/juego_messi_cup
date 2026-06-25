@@ -118,7 +118,7 @@ function playSound(type) {
 }
 
 // Config and Physics
-const groundY = 220;
+const groundY = 260;
 let speed = 7.5;
 const baseSpeed = 7.5;
 const maxSpeed = 16.5;
@@ -432,31 +432,87 @@ class Messi {
         const rightLegY = bodyY + 54 + (this.jumping ? -8 : Math.sin(legPhase + Math.PI) * 10);
         const rightLegX = bodyX + 25 + (this.jumping ? 4 : Math.cos(legPhase + Math.PI) * 12);
         
-        // Left Leg
+        // Left Leg & Sock
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(bodyX + 15, bodyY + 45);
         ctx.lineTo(leftLegX, leftLegY);
         ctx.stroke();
+
+        // White/Blue Sock details on Left Leg
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(bodyX + 15 + (leftLegX - (bodyX + 15)) * 0.35, bodyY + 45 + (leftLegY - (bodyY + 45)) * 0.35);
+        ctx.lineTo(bodyX + 15 + (leftLegX - (bodyX + 15)) * 0.75, bodyY + 45 + (leftLegY - (bodyY + 45)) * 0.75);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(bodyX + 15 + (leftLegX - (bodyX + 15)) * 0.45, bodyY + 45 + (leftLegY - (bodyY + 45)) * 0.45);
+        ctx.lineTo(bodyX + 15 + (leftLegX - (bodyX + 15)) * 0.65, bodyY + 45 + (leftLegY - (bodyY + 45)) * 0.65);
+        ctx.stroke();
+
+        // Left Boot (Golden)
         ctx.fillStyle = '#fbbf24';
         ctx.beginPath();
-        ctx.arc(leftLegX, leftLegY, 5, 0, Math.PI * 2);
+        ctx.ellipse(leftLegX, leftLegY, 6.5, 4, 0.1, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = '#000';
         ctx.lineWidth = 1.5;
         ctx.stroke();
         
-        // Right Leg
+        // Right Leg & Sock
+        ctx.strokeStyle = '#000';
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(bodyX + 27, bodyY + 45);
         ctx.lineTo(rightLegX, rightLegY);
         ctx.stroke();
+
+        // White/Blue Sock details on Right Leg
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(bodyX + 27 + (rightLegX - (bodyX + 27)) * 0.35, bodyY + 45 + (rightLegY - (bodyY + 45)) * 0.35);
+        ctx.lineTo(bodyX + 27 + (rightLegX - (bodyX + 27)) * 0.75, bodyY + 45 + (rightLegY - (bodyY + 45)) * 0.75);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(bodyX + 27 + (rightLegX - (bodyX + 27)) * 0.45, bodyY + 45 + (rightLegY - (bodyY + 45)) * 0.45);
+        ctx.lineTo(bodyX + 27 + (rightLegX - (bodyX + 27)) * 0.65, bodyY + 45 + (rightLegY - (bodyY + 45)) * 0.65);
+        ctx.stroke();
+
+        // Right Boot (Golden)
         ctx.fillStyle = '#fbbf24';
         ctx.beginPath();
-        ctx.arc(rightLegX, rightLegY, 5, 0, Math.PI * 2);
+        ctx.ellipse(rightLegX, rightLegY, 6.5, 4, 0.1, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = '#000';
         ctx.lineWidth = 1.5;
         ctx.stroke();
         
+        // Shirt Sleeves (gives Jersey actual body shape)
+        ctx.fillStyle = this.invincible ? '#fbbf24' : '#38bdf8';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2.5;
+
+        // Left Sleeve
+        ctx.beginPath();
+        ctx.roundRect(bodyX + 5, bodyY + 20, 6, 12, 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Right Sleeve
+        ctx.beginPath();
+        ctx.roundRect(bodyX + 33, bodyY + 20, 6, 12, 2);
+        ctx.fill();
+        ctx.stroke();
+
         // Shirt (Argentina)
         ctx.fillStyle = this.invincible ? '#fbbf24' : '#38bdf8';
         ctx.beginPath();
@@ -480,10 +536,15 @@ class Messi {
         ctx.font = 'bold 7px "Space Mono"';
         ctx.fillText('10', bodyX + 19, bodyY + 36);
         
-        // Shorts
+        // Shorts with leg cutouts
         ctx.fillStyle = this.invincible ? '#d97706' : '#000000';
-        ctx.fillRect(bodyX + 10, bodyY + 43, 24, 6);
-        ctx.strokeRect(bodyX + 10, bodyY + 43, 24, 6);
+        ctx.beginPath();
+        ctx.roundRect(bodyX + 9, bodyY + 43, 12, 8, 2);
+        ctx.roundRect(bodyX + 23, bodyY + 43, 12, 8, 2);
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.strokeRect(bodyX + 9, bodyY + 43, 12, 8);
+        ctx.strokeRect(bodyX + 23, bodyY + 43, 12, 8);
         
         // Arm
         ctx.strokeStyle = '#000';
@@ -530,12 +591,25 @@ class Messi {
         ctx.lineWidth = 2.5;
         ctx.stroke();
         
+        // Face skin
         ctx.fillStyle = '#ffd6ad';
         ctx.beginPath();
         ctx.arc(headX, headY + 1, 11, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+
+        // Beard (Messi's iconic beard overlay on the lower face half)
+        ctx.fillStyle = '#b45309'; // Rich brown beard
+        ctx.beginPath();
+        ctx.arc(headX, headY + 2, 11.2, 0.15, Math.PI - 0.15);
+        ctx.lineTo(headX, headY + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
         
+        // Ear/Sideburn details
         ctx.fillStyle = '#fbbf24';
         ctx.beginPath();
         ctx.arc(headX - 9, headY - 3, 3, 0, Math.PI*2);
@@ -545,16 +619,18 @@ class Messi {
         ctx.lineWidth = 1.5;
         ctx.stroke();
         
+        // Eyes
         ctx.fillStyle = '#000';
         ctx.beginPath();
         ctx.arc(headX - 4, headY - 1, 2, 0, Math.PI * 2);
         ctx.arc(headX + 4, headY - 1, 2, 0, Math.PI * 2);
         ctx.fill();
         
+        // Smile
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(headX, headY + 4, 4, 0.1, Math.PI - 0.1);
+        ctx.arc(headX, headY + 3, 3.5, 0.1, Math.PI - 0.1);
         ctx.stroke();
         
         ctx.restore();
@@ -667,10 +743,11 @@ class Obstacle {
             ctx.lineTo(rivalX - 15, rivalY + 26);
             ctx.stroke();
             
-            ctx.fillStyle = '#ef4444';
+            ctx.fillStyle = '#ef4444'; // Red boot for slider
             ctx.beginPath();
-            ctx.arc(rivalX - 15, rivalY + 26, 4, 0, Math.PI * 2);
+            ctx.ellipse(rivalX - 15, rivalY + 26, 6, 3.5, -0.2, 0, Math.PI * 2);
             ctx.fill();
+            ctx.strokeStyle = '#000';
             ctx.lineWidth = 1.5;
             ctx.stroke();
             
@@ -697,15 +774,69 @@ class Obstacle {
             ctx.lineWidth = 5;
             ctx.lineCap = 'round';
             let legPhase = gameFrame * 0.18 + Math.PI;
+            
+            const rivalLeftLegX = rivalX + 10 + Math.cos(legPhase)*8;
+            const rivalLeftLegY = rivalY + 54 + Math.sin(legPhase)*8;
+            const rivalRightLegX = rivalX + 30 + Math.cos(legPhase + Math.PI)*8;
+            const rivalRightLegY = rivalY + 54 + Math.sin(legPhase + Math.PI)*8;
+            
+            // Left Leg
             ctx.beginPath();
             ctx.moveTo(rivalX + 15, rivalY + 45);
-            ctx.lineTo(rivalX + 10 + Math.cos(legPhase)*8, rivalY + 54 + Math.sin(legPhase)*8);
+            ctx.lineTo(rivalLeftLegX, rivalLeftLegY);
             ctx.stroke();
+
+            // Left Boot (Red)
+            ctx.fillStyle = '#ef4444';
             ctx.beginPath();
-            ctx.moveTo(rivalX + 25, rivalY + 45);
-            ctx.lineTo(rivalX + 30 + Math.cos(legPhase + Math.PI)*8, rivalY + 54 + Math.sin(legPhase + Math.PI)*8);
+            ctx.ellipse(rivalLeftLegX, rivalLeftLegY, 6, 3.5, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
             
+            // Right Leg
+            ctx.beginPath();
+            ctx.moveTo(rivalX + 25, rivalY + 45);
+            ctx.lineTo(rivalRightLegX, rivalRightLegY);
+            ctx.stroke();
+
+            // Right Boot (Red)
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.ellipse(rivalRightLegX, rivalRightLegY, 6, 3.5, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Defender Arms (running position)
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4.5;
+            const defArmAngle = Math.sin(legPhase) * 0.7;
+            const defHandX = rivalX + 20 + Math.sin(defArmAngle) * 14;
+            const defHandY = rivalY + 28 + bounce + Math.cos(defArmAngle) * 10;
+            ctx.beginPath();
+            ctx.moveTo(rivalX + 20, rivalY + 22 + bounce);
+            ctx.lineTo(defHandX, defHandY);
+            ctx.stroke();
+            ctx.fillStyle = '#c68a4c';
+            ctx.beginPath();
+            ctx.arc(defHandX, defHandY, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Sleeves
+            ctx.fillStyle = this.jersey;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.roundRect(rivalX + 3, rivalY + 18 + bounce, 5, 12, 1);
+            ctx.roundRect(rivalX + 32, rivalY + 18 + bounce, 5, 12, 1);
+            ctx.fill();
+            ctx.strokeRect(rivalX + 3, rivalY + 18 + bounce, 5, 12);
+            ctx.strokeRect(rivalX + 32, rivalY + 18 + bounce, 5, 12);
+
+            // Shirt
             ctx.fillStyle = this.jersey;
             ctx.beginPath();
             ctx.roundRect(rivalX + 8, rivalY + 18 + bounce, 24, 28, 4);
@@ -714,10 +845,17 @@ class Obstacle {
             ctx.lineWidth = 2.5;
             ctx.strokeRect(rivalX + 8, rivalY + 18 + bounce, 24, 28);
             
+            // Shorts with leg cutouts
             ctx.fillStyle = '#000000';
-            ctx.fillRect(rivalX + 8, rivalY + 41 + bounce, 24, 6);
-            ctx.strokeRect(rivalX + 8, rivalY + 41 + bounce, 24, 6);
+            ctx.beginPath();
+            ctx.roundRect(rivalX + 7, rivalY + 41 + bounce, 12, 6, 1);
+            ctx.roundRect(rivalX + 19, rivalY + 41 + bounce, 12, 6, 1);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(rivalX + 7, rivalY + 41 + bounce, 12, 6);
+            ctx.strokeRect(rivalX + 19, rivalY + 41 + bounce, 12, 6);
             
+            // Head
             const headX = rivalX + 20;
             const headY = rivalY + 8 + bounce;
             ctx.fillStyle = '#c68a4c';
@@ -725,12 +863,15 @@ class Obstacle {
             ctx.arc(headX, headY, 11, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
+            
+            // Hair
             ctx.fillStyle = '#1e293b';
             ctx.beginPath();
             ctx.arc(headX, headY - 4, 9, Math.PI, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
             
+            // Concentrated Eyebrows / Eyes
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -957,6 +1098,11 @@ function update() {
             return;
         }
         if (obs.launched) return;
+
+        // Spawn sliding dirt/grass particles behind sliding defender
+        if (obs.type === 'slide' && gameFrame % 4 === 0) {
+            particles.push(new Particle(obs.x + 35, groundY + 68, 'rgba(255, 255, 255, 0.15)'));
+        }
 
         const toleranceX = 8;
         const toleranceY = 6;
