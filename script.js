@@ -288,8 +288,8 @@ class Messi {
         this.width = 46;
         this.height = 72;
         this.vy = 0;
-        this.gravity = 0.95;
-        this.jumpForce = -16.0;
+        this.gravity = 1.0;
+        this.jumpForce = -17.5;
         this.jumping = false;
         this.isHoldingJump = false; // Flag for variable jump height
         
@@ -347,8 +347,8 @@ class Messi {
             this.vy += this.gravity;
             
             // Variable jump height: if button released early, cap upward velocity to allow a solid minimum jump
-            if (!this.isHoldingJump && this.vy < -7.5) {
-                this.vy = -7.5;
+            if (!this.isHoldingJump && this.vy < -8.5) {
+                this.vy = -8.5;
             }
 
             this.y += this.vy;
